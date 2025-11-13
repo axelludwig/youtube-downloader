@@ -1,0 +1,14 @@
+{
+  "name": "yt-max-downloader-windows",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "fluent-ffmpeg": "^2.1.2",
+    "uuid": "^9.0.1"
+  }
+}

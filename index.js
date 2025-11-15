@@ -5,6 +5,9 @@ import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import fs from "fs";
 import url from "url";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -15,7 +18,7 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const isWin = process.platform === "win32";
 const ext = isWin ? ".exe" : "";
 
-// Dossiers fixes
+// Dossiers binaires
 const FFMPEG_DIR = path.join(__dirname, "ffmpeg");
 const YTDLP_DIR = path.join(__dirname, "yt-dlp");
 
@@ -46,14 +49,16 @@ const MERGED_DIR = path.join(__dirname, "merged");
 if (!fs.existsSync(DOWNLOAD_DIR)) fs.mkdirSync(DOWNLOAD_DIR);
 if (!fs.existsSync(MERGED_DIR)) fs.mkdirSync(MERGED_DIR);
 
-// ------- PROGRESS SYSTEM -------
+// ===============================================
+//  PROGRESS SYSTEM (SSE)
+// ===============================================
+
 let clients = [];
 let currentProgress = {
     step: "idle",
     percent: 0
 };
 
-// SSE connection
 app.get("/progress", (req, res) => {
     res.writeHead(200, {
         "Content-Type": "text/event-stream",
@@ -76,7 +81,10 @@ function broadcastProgress(step, percent) {
     }
 }
 
-// ------- HOME PAGE -------
+// ===============================================
+// HOME PAGE
+// ===============================================
+
 app.get("/", (req, res) => {
     res.send(`
     <!doctype html>
@@ -145,7 +153,10 @@ app.get("/", (req, res) => {
     `);
 });
 
-// Route de téléchargement du fichier final
+// ===============================================
+//  SERVE FINAL MP4 FILE
+// ===============================================
+
 app.get("/file", (req, res) => {
     const file = req.query.path;
 
@@ -154,7 +165,10 @@ app.get("/file", (req, res) => {
     res.download(file);
 });
 
-// ------- DOWNLOAD LOGIC -------
+// ===============================================
+//  DOWNLOAD LOGIC
+// ===============================================
+
 app.post("/download", async (req, res) => {
     const { url } = req.body;
 
@@ -202,19 +216,21 @@ app.post("/download", async (req, res) => {
             file: outputPath,
             downloadUrl: "/file?path=" + encodeURIComponent(outputPath)
         });
+
     } catch (err) {
         broadcastProgress("Erreur ❌", 0);
         return res.status(500).json({ error: "Erreur", details: err.toString() });
     }
 });
 
-// Progress for yt-dlp (simulate 0→100%)
+// ===============================================
+//  EXEC PROGRESS (yt-dlp output parsing)
+// ===============================================
+
 function execProgress(cmd, args) {
     return new Promise((resolve, reject) => {
         let percent = 0;
-
         const child = execFile(cmd, args);
-
         const regex = /(\d+\.\d)%/;
 
         child.stdout?.on("data", (data) => {
@@ -242,6 +258,12 @@ function execProgress(cmd, args) {
     });
 }
 
-app.listen(3000, () => {
-    console.log("🚀 Serveur prêt sur http://localhost:3000");
+// ===============================================
+//  START SERVER (PORT VIA .env)
+// ===============================================
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`🚀 Serveur prêt sur http://localhost:${PORT}`);
 });

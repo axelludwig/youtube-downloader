@@ -4,80 +4,108 @@ Petit serveur Node.js pour :
 
 - Télécharger la **meilleure vidéo** YouTube
 - Télécharger la **meilleure piste audio**
-- **Fusionner** les deux en un seul fichier `.mp4`
-- Suivre l’**avancement en direct** (téléchargement + fusion) via une barre de progression sur une page web
+- **Fusionner** les deux en un seul `.mp4`
+- Suivre l’**avancement en direct** via SSE (progression vidéo + audio + fusion)
 
 ---
 
 ## 🧩 Prérequis
 
 - **Node.js** (version 18+ recommandée)
-- **yt-dlp** (binaire Windows)
-- **ffmpeg** (binaire Windows avec `ffmpeg.exe` et `ffprobe.exe`)
+- **AUCUNE installation système nécessaire**
+- Le projet utilise **des exécutables embarqués** :
+  - `ffmpeg` / `ffmpeg.exe`
+  - `ffprobe` / `ffprobe.exe`
+  - `yt-dlp` / `yt-dlp.exe`
+
+👉 Les versions Windows, Linux ou macOS doivent simplement être placées dans les bons dossiers du projet.
 
 ---
 
 ## 📥 Téléchargement des outils externes
 
-### 1. yt-dlp (Windows)
+Tu dois créer deux dossiers :
 
-1. Va sur la page des releases GitHub de yt-dlp :  
-   <https://github.com/yt-dlp/yt-dlp/releases> :contentReference[oaicite:0]{index=0}  
-2. Clique sur la dernière version stable.
-3. Dans la section **Assets**, télécharge le fichier :
+```
+ffmpeg/
+yt-dlp/
+```
 
-   - `yt-dlp.exe` (binaire Windows autonome)
+Et y placer les exécutables correspondants **selon ton OS**.
 
-4. Place ce fichier **à la racine du projet**, à côté de `index.js` et `package.json`.
+Le serveur détecte automatiquement Windows/Linux/macOS et utilise :
 
-Arborescence attendue :
+| OS | Nom des fichiers |
+|----|-------------------|
+| Windows | `ffmpeg.exe`, `ffprobe.exe`, `yt-dlp.exe` |
+| Linux/macOS | `ffmpeg`, `ffprobe`, `yt-dlp` |
 
-```text
-YOUTUBE-DOWNLOADER/
- ├─ index.js
- ├─ package.json
- ├─ yt-dlp.exe        ← ici
- ├─ ffmpeg/
- ├─ downloads/
- └─ merged/
+> 🔧 Sous Linux/macOS, les permissions d’exécution (`chmod +x`) sont appliquées automatiquement au démarrage.
+
+---
+
+## 📥 1. Télécharger yt-dlp
+
+### Lien officiel :
+https://github.com/yt-dlp/yt-dlp/releases
+
+Télécharge le bon fichier :
+
+| OS | Fichier |
+|----|----------|
+| Windows | `yt-dlp.exe` |
+| Linux | `yt-dlp` |
+| Mac | `yt-dlp_macos` (renomme-le en `yt-dlp`) |
+
+Place-le dans :
+
+```
+yt-dlp/yt-dlp(.exe)
 ```
 
 ---
 
-### 2. ffmpeg (Windows)
+## 📥 2. Télécharger ffmpeg + ffprobe
 
-Il te faut une build Windows contenant **ffmpeg.exe** et **ffprobe.exe**.
+Source recommandée :
 
-#### Source recommandée (gyan.dev)
+https://www.gyan.dev/ffmpeg/builds/
 
-1. Va sur : <https://www.gyan.dev/ffmpeg/builds/> :contentReference[oaicite:1]{index=1}  
-2. Télécharge l’archive **release essentials** (suffisant pour ce projet), typiquement :
+Télécharge :
 
-   - `ffmpeg-release-essentials.zip` ou `ffmpeg-release-essentials.7z`
+- Windows : `ffmpeg-release-essentials.zip`
+- Linux/macOS : builds statiques FFmpeg (ex. https://www.johnvansickle.com/ffmpeg/)
 
-3. Extrais l’archive.
-4. Récupère au minimum :
+Récupère :
 
-   - `ffmpeg.exe`
-   - `ffprobe.exe`
+- `ffmpeg(.exe)`
+- `ffprobe(.exe)`
 
-5. Crée un dossier `ffmpeg` à la racine du projet et copie ces deux fichiers dedans.
+Place-les dans :
 
-Arborescence attendue :
+```
+ffmpeg/ffmpeg(.exe)
+ffmpeg/ffprobe(.exe)
+```
 
-```text
+---
+
+## 📂 Arborescence attendue
+
+```
 YOUTUBE-DOWNLOADER/
- ├─ ffmpeg/
- │   ├─ ffmpeg.exe     ← ici
- │   └─ ffprobe.exe    ← ici
- ├─ yt-dlp.exe
  ├─ index.js
  ├─ package.json
+ ├─ ffmpeg/
+ │   ├─ ffmpeg(.exe)
+ │   └─ ffprobe(.exe)
+ ├─ yt-dlp/
+ │   └─ yt-dlp(.exe)
  ├─ downloads/
  └─ merged/
 ```
 
-> ℹ️ Tu peux aussi passer par la page officielle de FFmpeg, qui renvoie vers des builds Windows, notamment gyan.dev. :contentReference[oaicite:2]{index=2}
+> Les dossiers `downloads/` et `merged/` sont créés automatiquement au démarrage s’ils n’existent pas.
 
 ---
 
@@ -89,8 +117,6 @@ Dans le dossier du projet :
 npm install
 ```
 
-Les dossiers `downloads` et `merged` sont créés automatiquement au démarrage si besoin.
-
 ---
 
 ## ▶️ Lancement
@@ -101,7 +127,7 @@ node index.js
 
 Le serveur démarre sur :
 
-```text
+```
 http://localhost:3000
 ```
 
@@ -111,23 +137,19 @@ http://localhost:3000
 
 ### 1. `GET /`
 
-Page HTML minimaliste avec :
+Page HTML minimaliste permettant :
 
-- Un champ texte pour coller une URL YouTube
-- Un bouton **“Télécharger”**
-- L’affichage de l’**étape actuelle** (`Téléchargement vidéo`, `Téléchargement audio`, `Fusion vidéo/audio`, etc.)
-- Une **barre de progression** qui suit :
-  - le téléchargement vidéo
-  - le téléchargement audio
-  - la fusion FFmpeg
-- Une zone `<pre>` qui affiche la réponse JSON de l’API `/download`
+- De saisir une URL YouTube 🎬
+- De lancer le téléchargement
+- De voir l'étape en cours
+- De suivre la progression en temps réel
+- De télécharger le fichier final
 
 ---
 
 ### 2. `GET /progress`
 
-- Type : **Server-Sent Events (SSE)**
-- Utilisé par la page HTML pour recevoir en temps réel l’état courant :
+SSE (Server-Sent Events) envoyant la progression :
 
 ```json
 {
@@ -136,22 +158,13 @@ Page HTML minimaliste avec :
 }
 ```
 
-La page se connecte automatiquement à cette route avec :
-
-```js
-const evt = new EventSource("/progress");
-```
-
 ---
 
 ### 3. `POST /download`
 
-Lance le téléchargement et la fusion.
+Déclenche le téléchargement :
 
-- **URL :** `/download`
-- **Méthode :** `POST`
-- **Headers :** `Content-Type: application/json`
-- **Body JSON :**
+#### Body JSON
 
 ```json
 {
@@ -159,75 +172,53 @@ Lance le téléchargement et la fusion.
 }
 ```
 
-**Fonctionnement interne :**
+#### Fonctionnement interne
 
-1. yt-dlp télécharge la meilleure **piste vidéo** (`bestvideo`) dans `downloads/<id>_video.mp4`.
-2. yt-dlp télécharge la meilleure **piste audio** (`bestaudio`) dans `downloads/<id>_audio.m4a`.
-3. ffmpeg fusionne vidéo + audio en un fichier final dans `merged/<id>.mp4`.
-4. La progression de chaque étape est envoyée sur `/progress`.
+1. yt-dlp → téléchargement **bestvideo**
+2. yt-dlp → téléchargement **bestaudio**
+3. ffmpeg → fusion sans ré-encodage (`-c:v copy`, `-c:a copy`)
+4. SSE → mise à jour progression
+5. Le fichier final est stocké dans `merged/`
 
-**Réponse (succès) :**
-
-```json
-{
-  "file": "C:\\chemin\\vers\\le\\projet\\merged\\<id>.mp4"
-}
-```
-
-**Réponse (erreur) :**
+#### Réponse :
 
 ```json
 {
-  "error": "Erreur",
-  "details": "Message d'erreur détaillé"
+  "file": "/chemin/vers/merged/<id>.mp4",
+  "downloadUrl": "/file?path=/chemin/vers/merged/<id>.mp4"
 }
 ```
 
 ---
 
-## 🗂 Dossiers utilisés
+## 🗂 Dossiers
 
-- `downloads/`  
-  Vidéo seule & audio seul téléchargés par yt-dlp (fichiers temporaires).
-
-- `merged/`  
-  Fichiers finaux `.mp4` (vidéo + audio fusionnés).
-
-- `ffmpeg/`  
-  Contient `ffmpeg.exe` et `ffprobe.exe` utilisés par `fluent-ffmpeg`.
-
-- `yt-dlp.exe`  
-  Binaire yt-dlp Windows utilisé via `execFile`.
+| Dossier | Contenu |
+|--------|----------|
+| `downloads/` | Vidéos/audio temporaires |
+| `merged/` | Fichiers finaux `.mp4` |
+| `ffmpeg/` | Binaires ffmpeg + ffprobe |
+| `yt-dlp/` | Binaire yt-dlp |
 
 ---
 
 ## 🛠 Notes techniques
 
-- La fusion est faite avec :
-
-  ```text
-  -c:v copy
-  -c:a copy
-  ```
-
-  → pas de ré-encodage, donc :
-
-  - très rapide
-  - aucune perte de qualité
-
-- La progression de yt-dlp est lue à partir de sa sortie console (`stdout` / `stderr`) grâce à un regex qui repère des lignes du type :
-
-  ```text
-  [download]  12.3% of 50.0MiB at 2.5MiB/s ETA 00:18
-  ```
-
-  et envoyée en temps réel aux clients via SSE sur `/progress`.
+- Aucune dépendance externe : ffmpeg & yt-dlp ne doivent pas être installés sur la machine
+- Compatible :
+  - Windows 💠
+  - Linux 🐧
+  - macOS 🍎
+- Le serveur applique automatiquement les permissions d’exécution sous Linux/macOS
+- La progression yt-dlp est extraite via un regex
 
 ---
 
-## ✅ Pistes d’amélioration
+## ✅ Pistes d'amélioration
 
-- Ajouter un bouton **“Télécharger la vidéo finale”** directement depuis l’interface (via une route `/file?path=...` par exemple).
-- Renommer le fichier dans `merged/` avec le **titre YouTube**.
-- Supprimer automatiquement les fichiers temporaires dans `downloads/`.
-- Gérer une **file d’attente** pour plusieurs téléchargements en parallèle.
+- Nettoyage automatique de `downloads/`
+- Utiliser le **titre YouTube** pour nommer le fichier final
+- Téléchargements simultanés via une file d’attente
+- Interface web plus jolie
+
+---

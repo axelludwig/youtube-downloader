@@ -8,10 +8,32 @@ import url from "url";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
-const YTDLP_PATH = path.join(__dirname, "yt-dlp.exe");
-const FFMPEG_PATH = path.join(__dirname, "ffmpeg", "ffmpeg.exe");
-const FFPROBE_PATH = path.join(__dirname, "ffmpeg", "ffprobe.exe");
+// ===============================================
+//  OS DETECTION + BINARY PATHS
+// ===============================================
 
+const isWin = process.platform === "win32";
+const ext = isWin ? ".exe" : "";
+
+// Dossiers fixes
+const FFMPEG_DIR = path.join(__dirname, "ffmpeg");
+const YTDLP_DIR = path.join(__dirname, "yt-dlp");
+
+// Chemins adaptés selon OS
+const FFMPEG_PATH = path.join(FFMPEG_DIR, "ffmpeg" + ext);
+const FFPROBE_PATH = path.join(FFMPEG_DIR, "ffprobe" + ext);
+const YTDLP_PATH = path.join(YTDLP_DIR, "yt-dlp" + ext);
+
+// Rendre exécutable sous Linux/Mac
+if (!isWin) {
+    [FFMPEG_PATH, FFPROBE_PATH, YTDLP_PATH].forEach(f => {
+        try { fs.chmodSync(f, 0o755); } catch {}
+    });
+}
+
+// ===============================================
+//  INIT FFMPEG
+// ===============================================
 ffmpeg.setFfmpegPath(FFMPEG_PATH);
 ffmpeg.setFfprobePath(FFPROBE_PATH);
 
@@ -54,7 +76,7 @@ function broadcastProgress(step, percent) {
     }
 }
 
-// ------- PAGE HOME -------
+// ------- HOME PAGE -------
 app.get("/", (req, res) => {
     res.send(`
     <!doctype html>
@@ -108,13 +130,13 @@ app.get("/", (req, res) => {
                     })
                     .then(r => r.json())
                     .then(data => {
-                    document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+                        document.getElementById('result').textContent = JSON.stringify(data, null, 2);
 
-                    if (data.downloadUrl) {
-                        const btn = document.getElementById("downloadBtn");
-                        btn.href = data.downloadUrl;
-                        btn.style.display = "inline-block";
-                    }
+                        if (data.downloadUrl) {
+                            const btn = document.getElementById("downloadBtn");
+                            btn.href = data.downloadUrl;
+                            btn.style.display = "inline-block";
+                        }
                     });
                 }
             </script>
@@ -123,13 +145,15 @@ app.get("/", (req, res) => {
     `);
 });
 
+// Route de téléchargement du fichier final
 app.get("/file", (req, res) => {
     const file = req.query.path;
 
     if (!file) return res.status(400).send("Missing file path");
 
-    res.download(file); // télécharge le fichier
+    res.download(file);
 });
+
 // ------- DOWNLOAD LOGIC -------
 app.post("/download", async (req, res) => {
     const { url } = req.body;
@@ -155,8 +179,8 @@ app.post("/download", async (req, res) => {
                 .input(videoPath)
                 .input(audioPath)
                 .outputOptions([
-                    "-c:v copy", // ⬅ PAS DE RÉENCODAGE
-                    "-c:a copy"  // ⬅ PAS DE RÉENCODAGE
+                    "-c:v copy",
+                    "-c:a copy"
                 ])
                 .output(outputPath)
                 .on("progress", p => {
@@ -191,9 +215,10 @@ function execProgress(cmd, args) {
 
         const child = execFile(cmd, args);
 
+        const regex = /(\d+\.\d)%/;
+
         child.stdout?.on("data", (data) => {
-            const text = data.toString();
-            const match = text.match(/(\\d+\\.\\d)%/);
+            const match = data.toString().match(regex);
             if (match) {
                 percent = parseInt(match[1]);
                 broadcastProgress(currentProgress.step, percent);
@@ -201,8 +226,7 @@ function execProgress(cmd, args) {
         });
 
         child.stderr?.on("data", (data) => {
-            const text = data.toString();
-            const match = text.match(/(\\d+\\.\\d)%/);
+            const match = data.toString().match(regex);
             if (match) {
                 percent = parseInt(match[1]);
                 broadcastProgress(currentProgress.step, percent);

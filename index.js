@@ -18,7 +18,7 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const isWin = process.platform === "win32";
 const ext = isWin ? ".exe" : "";
 
-// Dossiers binaires
+// Dossiers binaires (d’après ton arborescence)
 const FFMPEG_DIR = path.join(__dirname, "ffmpeg");
 const YTDLP_DIR = path.join(__dirname, "yt-dlp");
 
@@ -40,8 +40,15 @@ if (!isWin) {
 ffmpeg.setFfmpegPath(FFMPEG_PATH);
 ffmpeg.setFfprobePath(FFPROBE_PATH);
 
+// ===============================================
+//  EXPRESS APP
+// ===============================================
+
 const app = express();
 app.use(express.json());
+
+// servir les fichiers statiques du dossier "public"
+app.use(express.static(path.join(__dirname, "public")));
 
 const DOWNLOAD_DIR = path.join(__dirname, "downloads");
 const MERGED_DIR = path.join(__dirname, "merged");
@@ -82,79 +89,15 @@ function broadcastProgress(step, percent) {
 }
 
 // ===============================================
-// HOME PAGE
+// HOME PAGE (sert index.html du dossier public)
 // ===============================================
 
 app.get("/", (req, res) => {
-    res.send(`
-    <!doctype html>
-    <html>
-        <head>
-            <meta charset="utf-8">
-            <title>YT Downloader</title>
-            <style>
-                body { font-family: sans-serif; padding: 20px; }
-                .bar {
-                    width: 100%; height: 20px; background: #ddd;
-                    border-radius: 5px; margin-top: 10px;
-                }
-                .bar-inner {
-                    height: 100%; width: 0%; background: #4caf50;
-                    border-radius: 5px; transition: width 0.2s;
-                }
-            </style>
-        </head>
-        <body>
-            <h1>YouTube Downloader</h1>
-            <input id="url" type="text" size="60" placeholder="URL YouTube" />
-            <button onclick="download()">Télécharger</button>
-
-            <h3>Étape : <span id="step">Inactif</span></h3>
-
-            <div class="bar">
-                <div class="bar-inner" id="bar"></div>
-            </div>
-
-           <pre id="result"></pre>
-            <a id="downloadBtn" href="#" style="display:none;" download>
-                <button>Télécharger la vidéo</button>
-            </a>
-
-            <script>
-                const evt = new EventSource("/progress");
-                evt.onmessage = (e) => {
-                    const data = JSON.parse(e.data);
-                    document.getElementById("step").textContent = data.step;
-                    document.getElementById("bar").style.width = data.percent + "%";
-                };
-
-                async function download() {
-                    const url = document.getElementById('url').value;
-                    document.getElementById('result').textContent = "";
-                    fetch('/download', {
-                        method: 'POST',
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ url })
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        document.getElementById('result').textContent = JSON.stringify(data, null, 2);
-
-                        if (data.downloadUrl) {
-                            const btn = document.getElementById("downloadBtn");
-                            btn.href = data.downloadUrl;
-                            btn.style.display = "inline-block";
-                        }
-                    });
-                }
-            </script>
-        </body>
-    </html>
-    `);
+    res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // ===============================================
-//  SERVE FINAL MP4 FILE
+// SERVE FINAL MP4 FILE
 // ===============================================
 
 app.get("/file", (req, res) => {
@@ -166,7 +109,7 @@ app.get("/file", (req, res) => {
 });
 
 // ===============================================
-//  DOWNLOAD LOGIC
+// DOWNLOAD LOGIC
 // ===============================================
 
 app.post("/download", async (req, res) => {
@@ -206,7 +149,7 @@ app.post("/download", async (req, res) => {
                     resolve();
                 })
                 .on("error", (err) => {
-                    console.error("❌ Erreur FFmpeg :", err);
+                    console.error("Erreur FFmpeg :", err);
                     reject(err);
                 })
                 .run();
@@ -224,7 +167,7 @@ app.post("/download", async (req, res) => {
 });
 
 // ===============================================
-//  EXEC PROGRESS (yt-dlp output parsing)
+// EXEC PROGRESS (yt-dlp output parsing)
 // ===============================================
 
 function execProgress(cmd, args) {
@@ -259,11 +202,11 @@ function execProgress(cmd, args) {
 }
 
 // ===============================================
-//  START SERVER (PORT VIA .env)
+// START SERVER
 // ===============================================
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-    console.log(`🚀 Serveur prêt sur http://localhost:${PORT}`);
+    console.log(`Serveur prêt sur http://localhost:${PORT}`);
 });

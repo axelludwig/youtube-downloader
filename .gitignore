@@ -4,3 +4,5 @@
 /node_modules
 yt-dlp.exe
 .env
+temp
+downloads

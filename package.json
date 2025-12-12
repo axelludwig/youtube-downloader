@@ -2,9 +2,9 @@
   "name": "yt-max-downloader-windows",
   "version": "1.0.0",
   "type": "module",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node app.js"
   },
   "dependencies": {
     "dotenv": "^17.2.3",

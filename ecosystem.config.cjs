@@ -2,9 +2,9 @@ module.exports = {
     apps: [
         {
             name: "yt-downloader",
-            script: "./index.js",
+            script: "./app.js",
 
-            instances: 1,              // ou "max" si tu veux un cluster
+            instances: 1,
             autorestart: true,
             watch: false,
             max_memory_restart: "512M",

@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>YT Downloader</title>
+    <title>Media Downloader</title>
     <style>
         body {
             font-family: sans-serif;
@@ -25,12 +25,30 @@
             border-radius: 5px;
             transition: width 0.2s;
         }
+
+        .mode-group {
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 
 <body>
-    <h1>YouTube Downloader</h1>
-    <input id="url" type="text" size="60" placeholder="URL YouTube" />
+    <h1>Media Downloader</h1>
+
+    <input id="url" type="text" size="60" placeholder="URL (YouTube, TikTok, ...)" />
+
+    <div class="mode-group">
+        <label>
+            <input type="radio" name="mode" value="video" checked>
+            Vidéo (mp4)
+        </label>
+        <label style="margin-left: 15px;">
+            <input type="radio" name="mode" value="audio">
+            Audio (mp3)
+        </label>
+    </div>
+
     <button id="downloadBtnAction">Télécharger</button>
 
     <h3>Étape : <span id="step">Inactif</span></h3>
@@ -40,8 +58,9 @@
     </div>
 
     <pre id="result"></pre>
+
     <a id="downloadBtn" href="#" style="display:none;" download>
-        <button>Télécharger la vidéo</button>
+        <button id="downloadLabel">Télécharger le fichier</button>
     </a>
 
     <script src="app.js"></script>

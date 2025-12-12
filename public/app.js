@@ -1,131 +1,148 @@
-const evt = new EventSource("/progress");
+// public/app.js
 
-evt.onmessage = (e) => {
-    const data = JSON.parse(e.data);
-    document.getElementById("step").textContent = data.step;
-    document.getElementById("bar").style.width = data.percent + "%";
+const urlInput = document.getElementById("url");
+const stepSpan = document.getElementById("step");
+const barInner = document.getElementById("bar");
+const resultPre = document.getElementById("result");
+const actionBtn = document.getElementById("downloadBtnAction");
+const downloadLink = document.getElementById("downloadBtn");
+const downloadLabel = document.getElementById("downloadLabel");
+
+// ==============================
+// SSE pour la progression
+// ==============================
+
+const evtSource = new EventSource("/progress");
+
+evtSource.onmessage = (event) => {
+    try {
+        const data = JSON.parse(event.data);
+        stepSpan.textContent = data.step || "Inconnu";
+        const pct = data.percent || 0;
+        barInner.style.width = pct + "%";
+    } catch (e) {
+        console.error("Erreur parse SSE:", e);
+    }
 };
 
-/**
- * Normalise différents formats d’URL YouTube (ou un simple ID)
- * vers un lien du type https://www.youtube.com/watch?v=VIDEO_ID
- */
-function normalizeYouTubeUrl(input) {
-    const trimmed = input.trim();
-    if (!trimmed) return null;
+// ==============================
+// Helpers
+// ==============================
 
-    const idRegex = /^[a-zA-Z0-9_-]{11}$/;
-    let videoId = null;
-    let url;
-
-    // Si ce n’est pas une URL complète mais que c’est un ID
-    if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-        if (idRegex.test(trimmed)) {
-            return `https://www.youtube.com/watch?v=${trimmed}`;
-        }
-        // On tente quand même de le parser comme URL après avoir préfixé par https://
-        try {
-            url = new URL(`https://${trimmed}`);
-        } catch {
-            return null;
-        }
-    } else {
-        try {
-            url = new URL(trimmed);
-        } catch {
-            return null;
-        }
+function getSelectedMode() {
+    const radios = document.querySelectorAll('input[name="mode"]');
+    for (const r of radios) {
+        if (r.checked) return r.value;
     }
-
-    const host = url.hostname.toLowerCase();
-
-    // youtu.be/<id>
-    if (host === "youtu.be") {
-        const parts = url.pathname.split("/");
-        videoId = parts[1] || null;
-    }
-    // youtube.com, m.youtube.com, music.youtube.com, www.youtube.com, etc.
-    else if (host === "youtube.com" || host.endsWith(".youtube.com")) {
-        const pathname = url.pathname;
-
-        // /watch?v=<id>
-        if (pathname === "/watch" || pathname === "/watch/") {
-            videoId = url.searchParams.get("v");
-        }
-        // /shorts/<id>
-        else if (pathname.startsWith("/shorts/")) {
-            const parts = pathname.split("/");
-            videoId = parts[2] || null;
-        }
-        // /embed/<id>
-        else if (pathname.startsWith("/embed/")) {
-            const parts = pathname.split("/");
-            videoId = parts[2] || null;
-        }
-    } else {
-        // Pas un domaine YouTube
-        return null;
-    }
-
-    if (!videoId || !idRegex.test(videoId)) {
-        return null;
-    }
-
-    // On conserve éventuellement un paramètre de temps t ou start
-    const t = url.searchParams.get("t") || url.searchParams.get("start");
-    let normalized = `https://www.youtube.com/watch?v=${videoId}`;
-    if (t) {
-        normalized += `&t=${encodeURIComponent(t)}`;
-    }
-
-    return normalized;
+    return "video";
 }
 
-async function download() {
-    const input = document.getElementById("url");
-    const resultEl = document.getElementById("result");
-    const rawUrl = input.value;
+function normalizeUrlClient(raw) {
+    if (!raw) return raw;
+    if (!/^https?:\/\//i.test(raw)) {
+        return "https://" + raw;
+    }
+    return raw;
+}
 
-    resultEl.textContent = "";
+function detectSite(rawUrl) {
+    try {
+        const normalized = normalizeUrlClient(rawUrl);
+        const u = new URL(normalized);
+        const host = u.hostname.toLowerCase();
 
-    const normalizedUrl = normalizeYouTubeUrl(rawUrl);
+        if (host.includes("youtube.com") || host.includes("youtu.be")) {
+            return "youtube";
+        }
+        if (host.includes("tiktok.com")) {
+            return "tiktok";
+        }
 
-    if (!normalizedUrl) {
-        resultEl.textContent = "URL YouTube invalide ou non reconnue.";
+        // fallback: tu peux choisir de refuser ou de router vers YouTube
+        return "youtube";
+    } catch {
+        return "youtube";
+    }
+}
+
+function getEndpointForSite(site) {
+    switch (site) {
+        case "youtube":
+            return "/download/youtube";
+        case "tiktok":
+            return "/download/tiktok";
+        default:
+            return "/download/youtube";
+    }
+}
+
+// ==============================
+// Click sur "Télécharger"
+// ==============================
+
+actionBtn.addEventListener("click", async () => {
+    let url = urlInput.value.trim();
+    const mode = getSelectedMode();
+
+    if (!url) {
+        alert("Merci de saisir une URL.");
         return;
     }
 
-    fetch("/download", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: normalizedUrl })
-    })
-    .then(r => r.json())
-    .then(data => {
-        resultEl.textContent = JSON.stringify(data, null, 2);
+    const site = detectSite(url);
+    const endpoint = getEndpointForSite(site);
 
-        const btn = document.getElementById("downloadBtn");
+    url = normalizeUrlClient(url);
+
+    const format = mode === "audio" ? "mp3" : "mp4";
+
+    actionBtn.disabled = true;
+    resultPre.textContent = "";
+    downloadLink.style.display = "none";
+    stepSpan.textContent = "Préparation...";
+    barInner.style.width = "0%";
+
+    try {
+        const resp = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                url,
+                mode,
+                format
+            })
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.error || "Erreur HTTP " + resp.status);
+        }
+
+        const data = await resp.json();
+
+        resultPre.textContent = JSON.stringify(data, null, 2);
+
         if (data.downloadUrl) {
-            btn.href = data.downloadUrl;
-            btn.style.display = "inline-block";
+            // Met à jour le lien visible
+            downloadLink.href = data.downloadUrl;
+            downloadLink.style.display = "inline-block";
+            downloadLabel.textContent =
+                mode === "audio" ? "Télécharger l'audio" : "Télécharger la vidéo";
+
+            // Lance automatiquement le téléchargement
+            // (simulateur de clic sur le lien avec l'attribut download)
+            setTimeout(() => {
+                downloadLink.click();
+            }, 100);
         } else {
-            btn.style.display = "none";
+            downloadLink.style.display = "none";
         }
-    })
-    .catch(err => {
-        resultEl.textContent = "Erreur lors du téléchargement : " + err.toString();
-    });
-}
-
-document
-    .getElementById("downloadBtnAction")
-    .addEventListener("click", download);
-
-// Optionnel : lancement au "Enter" dans le champ texte
-document
-    .getElementById("url")
-    .addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-            download();
-        }
-    });
+    } catch (e) {
+        console.error(e);
+        resultPre.textContent = "Erreur : " + e.message;
+    } finally {
+        actionBtn.disabled = false;
+    }
+});

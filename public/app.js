@@ -57,6 +57,9 @@ function detectSite(rawUrl) {
         if (host.includes("tiktok.com")) {
             return "tiktok";
         }
+        if (host.includes("instagram.com")) {
+            return "instagram";
+        }
 
         // fallback: tu peux choisir de refuser ou de router vers YouTube
         return "youtube";
@@ -65,16 +68,20 @@ function detectSite(rawUrl) {
     }
 }
 
+
 function getEndpointForSite(site) {
     switch (site) {
         case "youtube":
             return "/download/youtube";
         case "tiktok":
             return "/download/tiktok";
+        case "instagram":
+            return "/download/instagram";
         default:
             return "/download/youtube";
     }
 }
+
 
 // ==============================
 // Click sur "Télécharger"

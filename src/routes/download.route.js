@@ -7,6 +7,7 @@ import { DOWNLOAD_DIR, MERGED_DIR } from "../config/dirs.js";
 import { downloadYoutubeVideo, downloadYoutubeAudio } from "../downloaders/youtube.js";
 import { downloadTikTokVideo, downloadTikTokAudio } from "../downloaders/tiktok.js";
 import { downloadInstagramVideo, downloadInstagramAudio } from "../downloaders/instagram.js";
+import { broadcastProgress, setBatchContext } from "../core/progress-sse.js";
 
 
 const router = Router();
@@ -52,6 +53,27 @@ function sanitizeYoutubeUrl(rawUrl) {
         return rawUrl;
     } catch {
         return rawUrl;
+    }
+}
+
+function detectSite(rawUrl) {
+    try {
+        const u = new URL(rawUrl);
+        const host = u.hostname.toLowerCase();
+
+        if (host.includes("youtube.com") || host.includes("youtu.be")) {
+            return "youtube";
+        }
+        if (host.includes("tiktok.com")) {
+            return "tiktok";
+        }
+        if (host.includes("instagram.com")) {
+            return "instagram";
+        }
+
+        return "youtube";
+    } catch {
+        return "youtube";
     }
 }
 
@@ -218,6 +240,106 @@ router.post("/download/instagram", async (req, res) => {
     }
 });
 
+// --------- BATCH DOWNLOAD ---------
+
+router.post("/download/batch", async (req, res) => {
+    const { urls } = req.body;
+
+    if (!urls || !Array.isArray(urls) || urls.length === 0) {
+        return res.status(400).json({
+            error: "Paramètres invalides",
+            details: "Envoyez un tableau non-vide 'urls'"
+        });
+    }
+
+    const results = {
+        totalVideos: urls.length,
+        successful: 0,
+        failed: 0,
+        files: [],
+        errors: []
+    };
+
+    for (let i = 0; i < urls.length; i++) {
+        const url = normalizeUrl(urls[i]);
+        const site = detectSite(url);
+
+        broadcastProgress({
+            step: `Vidéo ${i + 1}/${urls.length} : détection et téléchargement...`,
+            percent: Math.round((i / urls.length) * 100),
+            videoIndex: i,
+            videoStatus: "downloading"
+        });
+
+        // Définir le contexte du batch pour que les downloaders gardent videoIndex/videoStatus
+        setBatchContext({ videoIndex: i, videoStatus: "downloading" });
+
+        try {
+            let finalUrl = url;
+            let paths;
+            const mode = "video"; // Toujours en vidéo pour batch
+
+            // YouTube: nettoyer les paramètres de playlist
+            if (site === "youtube") {
+                finalUrl = sanitizeYoutubeUrl(url);
+            }
+
+            const { paths: newPaths } = createPaths(mode, "mp4");
+            paths = newPaths;
+
+            // Télécharger selon le site
+            if (site === "youtube") {
+                await downloadYoutubeVideo({ url: finalUrl, paths });
+            } else if (site === "tiktok") {
+                await downloadTikTokVideo({ url: finalUrl, paths });
+            } else if (site === "instagram") {
+                await downloadInstagramVideo({ url: finalUrl, paths });
+            } else {
+                throw new Error("Site non reconnue");
+            }
+
+            results.successful++;
+            results.files.push({
+                index: i,
+                url: url,
+                site: site,
+                file: paths.outputPath,
+                downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath)
+            });
+
+            broadcastProgress({
+                step: `Vidéo ${i + 1}/${urls.length} : ✓ Terminée`,
+                percent: Math.round(((i + 1) / urls.length) * 100),
+                videoIndex: i,
+                videoStatus: "completed"
+            });
+
+        } catch (err) {
+            results.failed++;
+            const errorMsg = String(err);
+            results.errors.push({
+                urlIndex: i,
+                url: url,
+                error: errorMsg
+            });
+
+            broadcastProgress({
+                step: `Vidéo ${i + 1}/${urls.length} : ✗ Erreur`,
+                percent: Math.round(((i + 1) / urls.length) * 100),
+                videoIndex: i,
+                videoStatus: "error",
+                error: errorMsg
+            });
+
+            console.error(`Erreur batch vidéo ${i + 1}:`, err);
+        }
+    }
+
+    // Nettoyer le contexte du batch
+    setBatchContext(null);
+
+    return res.json(results);
+});
 
 
 export default router;

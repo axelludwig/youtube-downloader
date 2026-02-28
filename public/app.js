@@ -1,12 +1,49 @@
 // public/app.js
 
-const urlInput = document.getElementById("url");
+// ==============================
+// Gestion du thème (localStorage)
+// ==============================
+
+const themeToggle = document.getElementById("themeToggle");
+const html = document.documentElement;
+
+// Initialiser le thème au chargement
+function initTheme() {
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    html.setAttribute("data-theme", savedTheme);
+    updateThemeToggleIcon(savedTheme);
+}
+
+// Mettre à jour l'icône du bouton
+function updateThemeToggleIcon(theme) {
+    themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
+}
+
+// Basculer le thème
+themeToggle.addEventListener("click", () => {
+    const currentTheme = html.getAttribute("data-theme") || "dark";
+    const newTheme = currentTheme === "dark" ? "light" : "dark";
+
+    html.setAttribute("data-theme", newTheme);
+    localStorage.setItem("theme", newTheme);
+    updateThemeToggleIcon(newTheme);
+});
+
+// Initialiser le thème au chargement de la page
+initTheme();
+
+const urlsInput = document.getElementById("urlsInput");
 const stepSpan = document.getElementById("step");
 const barInner = document.getElementById("bar");
 const resultPre = document.getElementById("result");
+const resultSection = document.getElementById("resultSection");
 const actionBtn = document.getElementById("downloadBtnAction");
-const downloadLink = document.getElementById("downloadBtn");
-const downloadLabel = document.getElementById("downloadLabel");
+const pasteBtn = document.getElementById("pasteBtn");
+const videosListSection = document.getElementById("videosListSection");
+const videosTableBody = document.getElementById("videosTableBody");
+
+// État du batch en cours
+let currentBatchState = null;
 
 // ==============================
 // SSE pour la progression
@@ -17,6 +54,31 @@ const evtSource = new EventSource("/progress");
 evtSource.onmessage = (event) => {
     try {
         const data = JSON.parse(event.data);
+
+        // Mise à jour du tableau si batch en cours
+        if (currentBatchState && data.videoIndex !== undefined) {
+            const videoRow = document.querySelector(`tr[data-video-index="${data.videoIndex}"]`);
+            if (videoRow) {
+                const statusCell = videoRow.querySelector(".video-status");
+                const progressCell = videoRow.querySelector(".video-progress");
+
+                if (data.videoStatus === "downloading" || data.videoStatus === "processing") {
+                    statusCell.textContent = "⏳ En cours...";
+                    progressCell.textContent = Math.round(data.percent || 0) + "%";
+                    statusCell.className = "video-status status-processing";
+                } else if (data.videoStatus === "completed") {
+                    statusCell.textContent = "✓ Terminée";
+                    progressCell.textContent = "100%";
+                    statusCell.className = "video-status status-success";
+                } else if (data.videoStatus === "error") {
+                    statusCell.textContent = "✗ " + (data.error || "Erreur");
+                    progressCell.textContent = "—";
+                    statusCell.className = "video-status status-error";
+                }
+            }
+        }
+
+        // Mise à jour de la progression globale
         stepSpan.textContent = data.step || "Inconnu";
         const pct = data.percent || 0;
         barInner.style.width = pct + "%";
@@ -29,14 +91,6 @@ evtSource.onmessage = (event) => {
 // Helpers
 // ==============================
 
-function getSelectedMode() {
-    const radios = document.querySelectorAll('input[name="mode"]');
-    for (const r of radios) {
-        if (r.checked) return r.value;
-    }
-    return "video";
-}
-
 function normalizeUrlClient(raw) {
     if (!raw) return raw;
     if (!/^https?:\/\//i.test(raw)) {
@@ -45,10 +99,19 @@ function normalizeUrlClient(raw) {
     return raw;
 }
 
+function parseUrlsFromTextarea() {
+    const text = urlsInput.value.trim();
+    if (!text) return [];
+
+    return text.split("\n")
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+        .map(line => normalizeUrlClient(line));
+}
+
 function detectSite(rawUrl) {
     try {
-        const normalized = normalizeUrlClient(rawUrl);
-        const u = new URL(normalized);
+        const u = new URL(rawUrl);
         const host = u.hostname.toLowerCase();
 
         if (host.includes("youtube.com") || host.includes("youtu.be")) {
@@ -61,13 +124,11 @@ function detectSite(rawUrl) {
             return "instagram";
         }
 
-        // fallback: tu peux choisir de refuser ou de router vers YouTube
         return "youtube";
     } catch {
         return "youtube";
     }
 }
-
 
 function getEndpointForSite(site) {
     switch (site) {
@@ -82,43 +143,77 @@ function getEndpointForSite(site) {
     }
 }
 
+// ==============================
+// Affichage du tableau de progression
+// ==============================
+
+function displayVideosTable(urls) {
+    videosTableBody.innerHTML = "";
+    urls.forEach((url, index) => {
+        const row = document.createElement("tr");
+        row.setAttribute("data-video-index", index);
+
+        const shortUrl = url.length > 50 ? url.substring(0, 50) + "..." : url;
+
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td title="${url}">${shortUrl}</td>
+            <td class="video-status status-pending">⏳ En attente</td>
+            <td class="video-progress">—</td>
+        `;
+        videosTableBody.appendChild(row);
+    });
+    videosListSection.style.display = "block";
+}
 
 // ==============================
-// Click sur "Télécharger"
+// Téléchargement du fichier
+// ==============================
+
+function triggerDownload(downloadUrl, filename) {
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = filename || "media";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// ==============================
+// Click sur "Télécharger tout"
 // ==============================
 
 actionBtn.addEventListener("click", async () => {
-    let url = urlInput.value.trim();
-    const mode = getSelectedMode();
+    const urls = parseUrlsFromTextarea();
 
-    if (!url) {
-        alert("Merci de saisir une URL.");
+    if (urls.length === 0) {
+        alert("Merci de saisir au moins une URL.");
         return;
     }
 
-    const site = detectSite(url);
-    const endpoint = getEndpointForSite(site);
-
-    url = normalizeUrlClient(url);
-
-    const format = mode === "audio" ? "mp3" : "mp4";
-
     actionBtn.disabled = true;
     resultPre.textContent = "";
-    downloadLink.style.display = "none";
     stepSpan.textContent = "Préparation...";
     barInner.style.width = "0%";
 
+    displayVideosTable(urls);
+
+    currentBatchState = {
+        totalVideos: urls.length,
+        completedVideos: 0,
+        failedVideos: 0,
+        downloadedFiles: []
+    };
+
+    // Lancer le téléchargement batch
     try {
-        const resp = await fetch(endpoint, {
+        const resp = await fetch("/download/batch", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                url,
-                mode,
-                format
+                urls: urls
             })
         });
 
@@ -129,27 +224,71 @@ actionBtn.addEventListener("click", async () => {
 
         const data = await resp.json();
 
-        resultPre.textContent = JSON.stringify(data, null, 2);
+        // Télécharger automatiquement les fichiers réussis, en séquence
+        if (data.files && data.files.length > 0) {
+            for (let i = 0; i < data.files.length; i++) {
+                const file = data.files[i];
+                triggerDownload(file.downloadUrl, `video_${i + 1}.mp4`);
 
-        if (data.downloadUrl) {
-            // Met à jour le lien visible
-            downloadLink.href = data.downloadUrl;
-            downloadLink.style.display = "inline-block";
-            downloadLabel.textContent =
-                mode === "audio" ? "Télécharger l'audio" : "Télécharger la vidéo";
-
-            // Lance automatiquement le téléchargement
-            // (simulateur de clic sur le lien avec l'attribut download)
-            setTimeout(() => {
-                downloadLink.click();
-            }, 100);
-        } else {
-            downloadLink.style.display = "none";
+                // Ajouter un délai entre chaque téléchargement (500ms)
+                if (i < data.files.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
         }
+
+        // Afficher un résumé
+        let summary = `\nRésumé du téléchargement en masse:\n`;
+        summary += `- Total: ${data.totalVideos} vidéos\n`;
+        summary += `- Réussites: ${data.successful} vidéos\n`;
+        summary += `- Erreurs: ${data.failed} vidéos\n`;
+
+        if (data.errors && data.errors.length > 0) {
+            summary += `\nErreurs:\n`;
+            data.errors.forEach((err, idx) => {
+                summary += `  ${idx + 1}. URL ${err.urlIndex + 1}: ${err.error}\n`;
+            });
+        }
+
+        if (data.files && data.files.length > 0) {
+            summary += `\n${data.successful} fichier(s) téléchargé(s) automatiquement`;
+        }
+
+        resultPre.textContent = summary;
+        resultSection.style.display = "block";
+        stepSpan.textContent = "✓ Téléchargement terminé";
+        barInner.style.width = "100%";
+
     } catch (e) {
         console.error(e);
         resultPre.textContent = "Erreur : " + e.message;
+        resultSection.style.display = "block";
+        stepSpan.textContent = "✗ Erreur";
     } finally {
         actionBtn.disabled = false;
+        currentBatchState = null;
+    }
+});
+
+// ==============================
+// Bouton pour coller le contenu du presse-papiers
+// ==============================
+
+pasteBtn.addEventListener("click", async () => {
+    try {
+        const clipboardText = await navigator.clipboard.readText();
+        if (clipboardText) {
+            // Si le textarea n'est pas vide, ajouter un saut de ligne
+            if (urlsInput.value.trim()) {
+                urlsInput.value += "\n" + clipboardText;
+            } else {
+                urlsInput.value = clipboardText;
+            }
+            // Focus sur le textarea
+            urlsInput.focus();
+        }
+    } catch (err) {
+        console.error("Erreur lors du collage:", err);
+        alert("Impossible d'accéder au presse-papiers. Assurez-vous que votre navigateur supporte cette fonctionnalité.");
     }
 });

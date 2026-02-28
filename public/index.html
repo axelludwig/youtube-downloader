@@ -8,46 +8,69 @@
     </head>
 
     <body>
+        <button id="themeToggle" class="theme-toggle" title="Basculer le thème">🌙</button>
         <main>
-            <h1>Media Downloader</h1>
-
-            <form id="downloadForm">
-                <input
-                    id="url"
-                    type="text"
-                    placeholder="URL (YouTube, TikTok, Instagram, ...)"
-                    required
-                />
-
-                <fieldset class="mode-group">
-                    <legend>Format de sortie</legend>
-                    <label>
-                        <input type="radio" name="mode" value="video" checked />
-                        Vidéo (mp4)
-                    </label>
-                    <label>
-                        <input type="radio" name="mode" value="audio" />
-                        Audio (mp3)
-                    </label>
-                </fieldset>
-
-                <button id="downloadBtnAction" type="button">Télécharger</button>
-            </form>
-
-            <section class="progress-container">
-                <h3>Étape : <span id="step">Inactif</span></h3>
-                <div class="bar">
-                    <div class="bar-inner" id="bar"></div>
+            <header class="app-header">
+                <div class="header-content">
+                    <h1>Media Downloader</h1>
+                    <p class="header-subtitle">Téléchargez vos contenus préférés en un clin d'œil</p>
                 </div>
-            </section>
+            </header>
 
-            <pre id="result"></pre>
+            <div class="container">
+                <section class="card">
+                    <h2 class="section-title">Ajouter des URLs</h2>
+                    <form id="downloadForm">
+                        <div class="textarea-wrapper">
+                            <textarea
+                                id="urlsInput"
+                                placeholder="Collez vos URLs (une par ligne)&#10;Exemple:&#10;https://www.youtube.com/shorts/Ia4EHN0Ihfk&#10;https://www.youtube.com/shorts/4GyGdrvGilI"
+                                rows="8"
+                                required
+                            ></textarea>
+                            <button id="pasteBtn" type="button" class="paste-btn" title="Coller le contenu du presse-papiers">Coller</button>
+                        </div>
 
-            <a id="downloadBtn" href="#" download>
-                <button id="downloadLabel" type="button">
-                    Télécharger le fichier
-                </button>
-            </a>
+                        <button id="downloadBtnAction" type="button" class="btn-primary">Télécharger tout</button>
+                    </form>
+                </section>
+
+                <section class="card progress-card">
+                    <h2 class="section-title">Progression</h2>
+                    <div class="progress-container">
+                        <div class="progress-info">
+                            <span class="progress-label">Statut :</span>
+                            <span id="step" class="progress-status">Inactif</span>
+                        </div>
+                        <div class="bar">
+                            <div class="bar-inner" id="bar"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="videosListSection" style="display: none;" class="card">
+                    <h2 class="section-title">Vidéos en cours</h2>
+                    <div class="table-wrapper">
+                        <table id="videosTable" class="videos-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>URL</th>
+                                    <th>Statut</th>
+                                    <th>Progression</th>
+                                </tr>
+                            </thead>
+                            <tbody id="videosTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="resultSection" style="display: none;" class="card">
+                    <h2 class="section-title">Résultat</h2>
+                    <pre id="result" class="result-output"></pre>
+                </section>
+            </div>
         </main>
 
         <script src="app.js"></script>

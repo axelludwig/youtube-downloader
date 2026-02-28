@@ -1,0 +1,232 @@
+:root {
+    --md-primary: #00ffa9;
+    --md-primary-dark: #00cc88;
+    --md-primary-light: #33ffbc;
+    --md-secondary: #4da6ff;
+    --md-surface: #121212;
+    --md-surface-variant: #1e1e1e;
+    --md-on-surface: #e1e1e1;
+    --md-on-surface-variant: #b0b0b0;
+    --md-error: #cf6679;
+    --md-shadow: rgba(0, 0, 0, 0.4);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--md-surface);
+    color: var(--md-on-surface);
+    padding: 20px;
+    line-height: 1.6;
+}
+
+main {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Typography */
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 32px;
+    color: var(--md-on-surface);
+    letter-spacing: -0.5px;
+}
+
+h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-top: 24px;
+    margin-bottom: 12px;
+    color: var(--md-on-surface);
+}
+
+/* Form */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+/* Input */
+#url {
+    width: 100%;
+    padding: 16px;
+    font-size: 1rem;
+    background-color: var(--md-surface-variant);
+    color: var(--md-on-surface);
+    border: 2px solid var(--md-surface-variant);
+    border-radius: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+}
+
+#url::placeholder {
+    color: var(--md-on-surface-variant);
+}
+
+#url:hover {
+    background-color: #262626;
+}
+
+#url:focus {
+    outline: none;
+    border-color: var(--md-primary);
+    background-color: #262626;
+    box-shadow: 0 0 0 4px rgba(187, 134, 252, 0.15);
+}
+
+/* Mode Group */
+.mode-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    background-color: var(--md-surface-variant);
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+}
+
+.mode-group legend {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--md-on-surface-variant);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.mode-group label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    color: var(--md-on-surface);
+    font-size: 1rem;
+    transition: color 0.2s;
+}
+
+.mode-group label:hover {
+    color: var(--md-primary);
+}
+
+.mode-group input[type="radio"] {
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    accent-color: var(--md-primary);
+}
+
+/* Button */
+button {
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    background-color: var(--md-primary);
+    color: #121212;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 8px var(--md-shadow);
+}
+
+button:hover {
+    background-color: var(--md-primary-light);
+    box-shadow: 0 6px 16px var(--md-shadow);
+    transform: translateY(-2px);
+}
+
+button:active {
+    background-color: var(--md-primary-dark);
+    transform: translateY(0);
+    box-shadow: 0 2px 4px var(--md-shadow);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+#downloadBtnAction {
+    align-self: flex-start;
+    margin-top: 4px;
+}
+
+/* Progress Container */
+.progress-container {
+    margin-bottom: 32px;
+}
+
+#step {
+    color: var(--md-secondary);
+    font-weight: 600;
+}
+
+/* Progress Bar */
+.bar {
+    width: 100%;
+    height: 4px;
+    background-color: var(--md-surface-variant);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 12px;
+}
+
+.bar-inner {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--md-primary), var(--md-secondary));
+    border-radius: 2px;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Result Output */
+#result {
+    background-color: var(--md-surface-variant);
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    min-height: 60px;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 0.875rem;
+    color: var(--md-on-surface-variant);
+    white-space: pre-wrap;
+    word-break: break-word;
+    display: none;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+#result:not(:empty) {
+    display: block;
+}
+
+/* Download Link */
+#downloadBtn {
+    text-decoration: none;
+    display: none;
+}
+
+#downloadBtn[href] {
+    display: block;
+}
+
+#downloadLabel {
+    width: 100%;
+}

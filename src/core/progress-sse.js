@@ -39,8 +39,8 @@ export function broadcastProgress(stepOrData, percent) {
         Object.assign(currentProgress, stepOrData);
     }
 
-    // Si on est dans un batch, ajouter le contexte
-    if (batchContext) {
+    // Si on est dans un batch, ajouter le contexte (mais pas si le message a déjà un videoStatus)
+    if (batchContext && !stepOrData?.videoStatus) {
         currentProgress.videoIndex = batchContext.videoIndex;
         currentProgress.videoStatus = batchContext.videoStatus;
     }

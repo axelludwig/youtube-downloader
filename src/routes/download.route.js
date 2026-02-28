@@ -108,6 +108,8 @@ router.post("/download/youtube", async (req, res) => {
             await downloadYoutubeAudio({ url, format: finalFormat, paths });
         }
 
+        broadcastProgress("✓ Téléchargement YouTube terminé", 100);
+
         return res.json({
             file: paths.outputPath,
             downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
@@ -117,6 +119,7 @@ router.post("/download/youtube", async (req, res) => {
         });
     } catch (err) {
         console.error("Erreur /download/youtube :", err);
+        broadcastProgress("✗ Erreur YouTube", 0);
         return res.status(500).json({
             error: "Erreur lors du traitement YouTube",
             details: String(err)
@@ -154,6 +157,8 @@ router.post("/download/tiktok", async (req, res) => {
             await downloadTikTokAudio({ url, format: finalFormat, paths });
         }
 
+        broadcastProgress("✓ Téléchargement TikTok terminé", 100);
+
         return res.json({
             file: paths.outputPath,
             downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
@@ -163,6 +168,7 @@ router.post("/download/tiktok", async (req, res) => {
         });
     } catch (err) {
         console.error("Erreur /download/tiktok :", err);
+        broadcastProgress("✗ Erreur TikTok", 0);
         return res.status(500).json({
             error: "Erreur lors du traitement TikTok",
             details: String(err)
@@ -200,6 +206,8 @@ router.post("/download/instagram", async (req, res) => {
             await downloadInstagramAudio({ url, format: finalFormat, paths });
         }
 
+        broadcastProgress("✓ Téléchargement Instagram terminé", 100);
+
         return res.json({
             file: paths.outputPath,
             downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
@@ -211,6 +219,8 @@ router.post("/download/instagram", async (req, res) => {
         console.error("Erreur /download/instagram :", err);
 
         const msg = String(err);
+
+        broadcastProgress("✗ Erreur Instagram", 0);
 
         // Cas 1 : contenu restreint par Instagram (ton exemple)
         if (msg.includes("This content may be inappropriate")) {
@@ -337,6 +347,13 @@ router.post("/download/batch", async (req, res) => {
 
     // Nettoyer le contexte du batch
     setBatchContext(null);
+
+    // Envoyer le message final de completion
+    broadcastProgress({
+        step: "✓ Téléchargement batch terminé",
+        percent: 100,
+        videoStatus: "batch_completed"
+    });
 
     return res.json(results);
 });

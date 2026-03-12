@@ -41,6 +41,7 @@ const actionBtn = document.getElementById("downloadBtnAction");
 const pasteBtn = document.getElementById("pasteBtn");
 const videosListSection = document.getElementById("videosListSection");
 const videosTableBody = document.getElementById("videosTableBody");
+const audioOnlyCheckbox = document.getElementById("audioOnlyCheckbox");
 
 // État du batch en cours
 let currentBatchState = null;
@@ -198,6 +199,8 @@ actionBtn.addEventListener("click", async () => {
 
     displayVideosTable(urls);
 
+    const mode = audioOnlyCheckbox.checked ? "audio" : "video";
+
     currentBatchState = {
         totalVideos: urls.length,
         completedVideos: 0,
@@ -213,7 +216,8 @@ actionBtn.addEventListener("click", async () => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                urls: urls
+                urls: urls,
+                mode: mode
             })
         });
 
@@ -228,7 +232,8 @@ actionBtn.addEventListener("click", async () => {
         if (data.files && data.files.length > 0) {
             for (let i = 0; i < data.files.length; i++) {
                 const file = data.files[i];
-                triggerDownload(file.downloadUrl, `video_${i + 1}.mp4`);
+                const extension = mode === "audio" ? "mp3" : "mp4";
+                triggerDownload(file.downloadUrl, `${mode}_${i + 1}.${extension}`);
 
                 // Ajouter un délai entre chaque téléchargement (500ms)
                 if (i < data.files.length - 1) {
@@ -239,6 +244,7 @@ actionBtn.addEventListener("click", async () => {
 
         // Afficher un résumé
         let summary = `\nRésumé du téléchargement en masse:\n`;
+        summary += `- Mode: ${mode === "audio" ? "Audio seulement (MP3)" : "Vidéo et audio (MP4)"}\n`;
         summary += `- Total: ${data.totalVideos} vidéos\n`;
         summary += `- Réussites: ${data.successful} vidéos\n`;
         summary += `- Erreurs: ${data.failed} vidéos\n`;

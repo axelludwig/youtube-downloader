@@ -101,6 +101,8 @@ router.post("/download/youtube", async (req, res) => {
 
     const { finalFormat, paths } = createPaths(mode, format);
 
+    broadcastProgress("Initialisation YouTube...", 0);
+
     try {
         if (mode === "video") {
             await downloadYoutubeVideo({ url, paths });
@@ -150,6 +152,8 @@ router.post("/download/tiktok", async (req, res) => {
 
     const { finalFormat, paths } = createPaths(mode, format);
 
+    broadcastProgress("Initialisation TikTok...", 0);
+
     try {
         if (mode === "video") {
             await downloadTikTokVideo({ url, paths });
@@ -198,6 +202,8 @@ router.post("/download/instagram", async (req, res) => {
     url = normalizeUrl(url);
 
     const { finalFormat, paths } = createPaths(mode, format);
+
+    broadcastProgress("Initialisation Instagram...", 0);
 
     try {
         if (mode === "video") {
@@ -253,7 +259,7 @@ router.post("/download/instagram", async (req, res) => {
 // --------- BATCH DOWNLOAD ---------
 
 router.post("/download/batch", async (req, res) => {
-    const { urls } = req.body;
+    const { urls, mode } = req.body;
 
     if (!urls || !Array.isArray(urls) || urls.length === 0) {
         return res.status(400).json({
@@ -261,6 +267,8 @@ router.post("/download/batch", async (req, res) => {
             details: "Envoyez un tableau non-vide 'urls'"
         });
     }
+
+    const finalMode = mode && ["audio", "video"].includes(mode) ? mode : "video";
 
     const results = {
         totalVideos: urls.length,
@@ -287,23 +295,35 @@ router.post("/download/batch", async (req, res) => {
         try {
             let finalUrl = url;
             let paths;
-            const mode = "video"; // Toujours en vidéo pour batch
 
             // YouTube: nettoyer les paramètres de playlist
             if (site === "youtube") {
                 finalUrl = sanitizeYoutubeUrl(url);
             }
 
-            const { paths: newPaths } = createPaths(mode, "mp4");
+            const format = finalMode === "audio" ? "mp3" : "mp4";
+            const { paths: newPaths } = createPaths(finalMode, format);
             paths = newPaths;
 
             // Télécharger selon le site
             if (site === "youtube") {
-                await downloadYoutubeVideo({ url: finalUrl, paths });
+                if (finalMode === "audio") {
+                    await downloadYoutubeAudio({ url: finalUrl, format, paths });
+                } else {
+                    await downloadYoutubeVideo({ url: finalUrl, paths });
+                }
             } else if (site === "tiktok") {
-                await downloadTikTokVideo({ url: finalUrl, paths });
+                if (finalMode === "audio") {
+                    await downloadTikTokAudio({ url: finalUrl, format, paths });
+                } else {
+                    await downloadTikTokVideo({ url: finalUrl, paths });
+                }
             } else if (site === "instagram") {
-                await downloadInstagramVideo({ url: finalUrl, paths });
+                if (finalMode === "audio") {
+                    await downloadInstagramAudio({ url: finalUrl, format, paths });
+                } else {
+                    await downloadInstagramVideo({ url: finalUrl, paths });
+                }
             } else {
                 throw new Error("Site non reconnue");
             }

@@ -2,7 +2,7 @@
 import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
 
-import { YTDLP_PATH, FFMPEG_DIR } from "../config/paths.js";
+import { YTDLP_PATH, FFMPEG_PATH } from "../config/paths.js";
 import { execProgress } from "../core/exec-progress.js";
 import { broadcastProgress } from "../core/progress-sse.js";
 
@@ -79,7 +79,7 @@ export async function downloadYoutubeAudio({ url, format, paths }) {
         [
             "-x",
             "--audio-format", audioFormat,
-            "--ffmpeg-location", FFMPEG_DIR,
+            "--ffmpeg-location", FFMPEG_PATH,
             "-o", outputPath,
             url
         ],

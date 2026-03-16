@@ -1,6 +1,6 @@
 // src/downloaders/instagram.js
 import fs from "fs";
-import { YTDLP_PATH, INSTAGRAM_COOKIES_PATH } from "../config/paths.js";
+import { YTDLP_PATH, INSTAGRAM_COOKIES_PATH, FFMPEG_DIR } from "../config/paths.js";
 import { execProgress } from "../core/exec-progress.js";
 import { broadcastProgress } from "../core/progress-sse.js";
 
@@ -52,6 +52,7 @@ export async function downloadInstagramAudio({ url, format, paths }) {
         ...baseArgs,
         "-x",
         "--audio-format", audioFormat,
+        "--ffmpeg-location", FFMPEG_DIR,
         "-o", outputPath,
         url
     ];

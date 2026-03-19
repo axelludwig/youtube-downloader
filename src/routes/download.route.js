@@ -7,6 +7,7 @@ import { DOWNLOAD_DIR, MERGED_DIR } from "../config/dirs.js";
 import { downloadYoutubeVideo, downloadYoutubeAudio } from "../downloaders/youtube.js";
 import { downloadTikTokVideo, downloadTikTokAudio } from "../downloaders/tiktok.js";
 import { downloadInstagramVideo, downloadInstagramAudio } from "../downloaders/instagram.js";
+import { downloadXVideo, downloadXAudio } from "../downloaders/x.js";
 import { broadcastProgress, setBatchContext } from "../core/progress-sse.js";
 
 
@@ -69,6 +70,9 @@ function detectSite(rawUrl) {
         }
         if (host.includes("instagram.com")) {
             return "instagram";
+        }
+        if (host.includes("x.com") || host.includes("twitter.com")) {
+            return "x";
         }
 
         return "youtube";
@@ -256,6 +260,57 @@ router.post("/download/instagram", async (req, res) => {
     }
 });
 
+// --------- X/TWITTER ---------
+
+router.post("/download/x", async (req, res) => {
+    let { url, mode, format } = req.body;
+
+    if (!url || !mode) {
+        return res.status(400).json({
+            error: "Paramètres manquants",
+            details: "Les champs 'url' et 'mode' sont obligatoires"
+        });
+    }
+
+    if (!["audio", "video"].includes(mode)) {
+        return res.status(400).json({
+            error: "Mode invalide",
+            details: "Le champ 'mode' doit être 'audio' ou 'video'"
+        });
+    }
+
+    url = normalizeUrl(url);
+
+    const { finalFormat, paths } = createPaths(mode, format);
+
+    broadcastProgress("Initialisation X...", 0);
+
+    try {
+        if (mode === "video") {
+            await downloadXVideo({ url, paths });
+        } else {
+            await downloadXAudio({ url, format: finalFormat, paths });
+        }
+
+        broadcastProgress("✓ Téléchargement X terminé", 100);
+
+        return res.json({
+            file: paths.outputPath,
+            downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
+            site: "x",
+            mode,
+            format: finalFormat
+        });
+    } catch (err) {
+        console.error("Erreur /download/x :", err);
+        broadcastProgress("✗ Erreur X", 0);
+        return res.status(500).json({
+            error: "Erreur lors du traitement X",
+            details: String(err)
+        });
+    }
+});
+
 // --------- BATCH DOWNLOAD ---------
 
 router.post("/download/batch", async (req, res) => {
@@ -323,6 +378,12 @@ router.post("/download/batch", async (req, res) => {
                     await downloadInstagramAudio({ url: finalUrl, format, paths });
                 } else {
                     await downloadInstagramVideo({ url: finalUrl, paths });
+                }
+            } else if (site === "x") {
+                if (finalMode === "audio") {
+                    await downloadXAudio({ url: finalUrl, format, paths });
+                } else {
+                    await downloadXVideo({ url: finalUrl, paths });
                 }
             } else {
                 throw new Error("Site non reconnue");

@@ -124,6 +124,12 @@ function detectSite(rawUrl) {
         if (host.includes("instagram.com")) {
             return "instagram";
         }
+        if (host.includes("x.com") || host.includes("twitter.com")) {
+            return "x";
+        }
+        if (host.includes("redgifs.com")) {
+            return "redgifs";
+        }
 
         return "youtube";
     } catch {
@@ -139,6 +145,10 @@ function getEndpointForSite(site) {
             return "/download/tiktok";
         case "instagram":
             return "/download/instagram";
+        case "x":
+            return "/download/x";
+        case "redgifs":
+            return "/download/redgifs";
         default:
             return "/download/youtube";
     }

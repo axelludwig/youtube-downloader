@@ -8,6 +8,7 @@ import { downloadYoutubeVideo, downloadYoutubeAudio } from "../downloaders/youtu
 import { downloadTikTokVideo, downloadTikTokAudio } from "../downloaders/tiktok.js";
 import { downloadInstagramVideo, downloadInstagramAudio } from "../downloaders/instagram.js";
 import { downloadXVideo, downloadXAudio } from "../downloaders/x.js";
+import { downloadRedgifsVideo, downloadRedgifsAudio } from "../downloaders/redgifs.js";
 import { broadcastProgress, setBatchContext } from "../core/progress-sse.js";
 
 
@@ -73,6 +74,9 @@ function detectSite(rawUrl) {
         }
         if (host.includes("x.com") || host.includes("twitter.com")) {
             return "x";
+        }
+        if (host.includes("redgifs.com")) {
+            return "redgifs";
         }
 
         return "youtube";
@@ -311,6 +315,57 @@ router.post("/download/x", async (req, res) => {
     }
 });
 
+// --------- REDGIFS ---------
+
+router.post("/download/redgifs", async (req, res) => {
+    let { url, mode, format } = req.body;
+
+    if (!url || !mode) {
+        return res.status(400).json({
+            error: "Paramètres manquants",
+            details: "Les champs 'url' et 'mode' sont obligatoires"
+        });
+    }
+
+    if (!["audio", "video"].includes(mode)) {
+        return res.status(400).json({
+            error: "Mode invalide",
+            details: "Le champ 'mode' doit être 'audio' ou 'video'"
+        });
+    }
+
+    url = normalizeUrl(url);
+
+    const { finalFormat, paths } = createPaths(mode, format);
+
+    broadcastProgress("Initialisation RedGifs...", 0);
+
+    try {
+        if (mode === "video") {
+            await downloadRedgifsVideo({ url, paths });
+        } else {
+            await downloadRedgifsAudio({ url, format: finalFormat, paths });
+        }
+
+        broadcastProgress("✓ Téléchargement RedGifs terminé", 100);
+
+        return res.json({
+            file: paths.outputPath,
+            downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
+            site: "redgifs",
+            mode,
+            format: finalFormat
+        });
+    } catch (err) {
+        console.error("Erreur /download/redgifs :", err);
+        broadcastProgress("✗ Erreur RedGifs", 0);
+        return res.status(500).json({
+            error: "Erreur lors du traitement RedGifs",
+            details: String(err)
+        });
+    }
+});
+
 // --------- BATCH DOWNLOAD ---------
 
 router.post("/download/batch", async (req, res) => {
@@ -384,6 +439,12 @@ router.post("/download/batch", async (req, res) => {
                     await downloadXAudio({ url: finalUrl, format, paths });
                 } else {
                     await downloadXVideo({ url: finalUrl, paths });
+                }
+            } else if (site === "redgifs") {
+                if (finalMode === "audio") {
+                    await downloadRedgifsAudio({ url: finalUrl, format, paths });
+                } else {
+                    await downloadRedgifsVideo({ url: finalUrl, paths });
                 }
             } else {
                 throw new Error("Site non reconnue");

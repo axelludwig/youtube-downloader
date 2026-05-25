@@ -14,7 +14,12 @@ export async function downloadYoutubeVideo({ url, paths }) {
     broadcastProgress("Téléchargement vidéo YouTube", 0);
     await execProgress(
         YTDLP_PATH,
-        ["-f", "bestvideo", "-o", videoPath, url],
+        [
+            "-f", "bestvideo[ext=mp4]/bestvideo[ext=webm]/bestvideo",
+            "--extractor-args", "youtube:player_client=web,default",
+            "--no-update",
+            "-o", videoPath, url
+        ],
         "Téléchargement vidéo YouTube"
     );
 
@@ -26,7 +31,12 @@ export async function downloadYoutubeVideo({ url, paths }) {
     broadcastProgress("Téléchargement audio YouTube", 0);
     await execProgress(
         YTDLP_PATH,
-        ["-f", "bestaudio", "-o", audioPath, url],
+        [
+            "-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio",
+            "--extractor-args", "youtube:player_client=web,default",
+            "--no-update",
+            "-o", audioPath, url
+        ],
         "Téléchargement audio YouTube"
     );
 
@@ -80,6 +90,8 @@ export async function downloadYoutubeAudio({ url, format, paths }) {
             "-x",
             "--audio-format", audioFormat,
             "--ffmpeg-location", FFMPEG_PATH,
+            "--extractor-args", "youtube:player_client=web,default",
+            "--no-update",
             "-o", outputPath,
             url
         ],

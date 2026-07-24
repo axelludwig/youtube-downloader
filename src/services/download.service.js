@@ -1,9 +1,5 @@
-// src/services/download.service.js
-import path from "path";
-import { v4 as uuidv4 } from "uuid";
-
-import { DOWNLOAD_DIR, MERGED_DIR } from "../config/dirs.js";
 import { downloadVideoYtDlp, downloadAudioYtDlp } from "../downloaders/yt-dlp.js";
+import { createMediaPaths } from "../core/media-names.js";
 
 export async function downloadMedia({ url, mode, format }) {
     // 1) normalisation protocole
@@ -11,21 +7,14 @@ export async function downloadMedia({ url, mode, format }) {
     // 2) nettoyage spécifique YouTube (supprimer ?list=... etc.)
     const sanitizedUrl = sanitizeYoutubeUrl(normalized);
 
-    const id = uuidv4();
-
-    const defaultFormat = mode === "audio" ? "mp3" : "mp4";
-    const finalFormat = format || defaultFormat;
-
-    const baseName = id;
-
-    const paths = {
-        videoPath: path.join(DOWNLOAD_DIR, `${baseName}_video.mp4`),
-        audioPath: path.join(DOWNLOAD_DIR, `${baseName}_audio.m4a`),
-        outputPath: path.join(MERGED_DIR, `${baseName}.${finalFormat}`)
-    };
-
     const host = getHostFromUrl(sanitizedUrl);
     const site = detectSite(host);
+    const { finalFormat, filename, paths } = await createMediaPaths({
+        url: sanitizedUrl,
+        site,
+        mode,
+        format
+    });
 
     switch (site) {
         case "tiktok":
@@ -38,7 +27,7 @@ export async function downloadMedia({ url, mode, format }) {
                 format: finalFormat,
                 paths
             });
-            return buildResult(paths.outputPath, "yt-dlp", mode, finalFormat);
+            return buildResult(paths.outputPath, "yt-dlp", mode, finalFormat, filename);
     }
 }
 
@@ -98,10 +87,11 @@ async function downloadWithYtDlp({ url, mode, format, paths }) {
     }
 }
 
-function buildResult(outputPath, engine, mode, format) {
+function buildResult(outputPath, engine, mode, format, filename) {
     return {
         filePath: outputPath,
         downloadUrl: "/file?path=" + encodeURIComponent(outputPath),
+        filename,
         engine,
         mode,
         format

@@ -243,7 +243,7 @@ actionBtn.addEventListener("click", async () => {
             for (let i = 0; i < data.files.length; i++) {
                 const file = data.files[i];
                 const extension = mode === "audio" ? "mp3" : "mp4";
-                triggerDownload(file.downloadUrl, `${mode}_${i + 1}.${extension}`);
+                triggerDownload(file.downloadUrl, file.filename || `${mode}_${i + 1}.${extension}`);
 
                 // Ajouter un délai entre chaque téléchargement (500ms)
                 if (i < data.files.length - 1) {

@@ -1,37 +1,18 @@
 // src/routes/download.route.js
 import { Router } from "express";
-import path from "path";
-import { v4 as uuidv4 } from "uuid";
 
-import { DOWNLOAD_DIR, MERGED_DIR } from "../config/dirs.js";
 import { downloadYoutubeVideo, downloadYoutubeAudio } from "../downloaders/youtube.js";
 import { downloadTikTokVideo, downloadTikTokAudio } from "../downloaders/tiktok.js";
 import { downloadInstagramVideo, downloadInstagramAudio } from "../downloaders/instagram.js";
 import { downloadXVideo, downloadXAudio } from "../downloaders/x.js";
 import { downloadRedgifsVideo, downloadRedgifsAudio } from "../downloaders/redgifs.js";
 import { broadcastProgress, setBatchContext } from "../core/progress-sse.js";
+import { createMediaPaths } from "../core/media-names.js";
 
 
 const router = Router();
 
 // --------- helpers communs ---------
-
-function createPaths(mode, format) {
-    const id = uuidv4();
-    const defaultFormat = mode === "audio" ? "mp3" : "mp4";
-    const finalFormat = format || defaultFormat;
-
-    const baseName = id;
-
-    return {
-        finalFormat,
-        paths: {
-            videoPath: path.join(DOWNLOAD_DIR, `${baseName}_video.mp4`),
-            audioPath: path.join(DOWNLOAD_DIR, `${baseName}_audio.m4a`),
-            outputPath: path.join(MERGED_DIR, `${baseName}.${finalFormat}`)
-        }
-    };
-}
 
 function normalizeUrl(rawUrl) {
     if (!rawUrl) return rawUrl;
@@ -107,7 +88,7 @@ router.post("/download/youtube", async (req, res) => {
     // normalisation + nettoyage playlist
     url = sanitizeYoutubeUrl(normalizeUrl(url));
 
-    const { finalFormat, paths } = createPaths(mode, format);
+    const { finalFormat, filename, paths } = await createMediaPaths({ url, site: "youtube", mode, format });
 
     broadcastProgress("Initialisation YouTube...", 0);
 
@@ -123,6 +104,7 @@ router.post("/download/youtube", async (req, res) => {
         return res.json({
             file: paths.outputPath,
             downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
+            filename,
             site: "youtube",
             mode,
             format: finalFormat
@@ -158,7 +140,7 @@ router.post("/download/tiktok", async (req, res) => {
 
     url = normalizeUrl(url);
 
-    const { finalFormat, paths } = createPaths(mode, format);
+    const { finalFormat, filename, paths } = await createMediaPaths({ url, site: "tiktok", mode, format });
 
     broadcastProgress("Initialisation TikTok...", 0);
 
@@ -174,6 +156,7 @@ router.post("/download/tiktok", async (req, res) => {
         return res.json({
             file: paths.outputPath,
             downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
+            filename,
             site: "tiktok",
             mode,
             format: finalFormat
@@ -209,7 +192,7 @@ router.post("/download/instagram", async (req, res) => {
 
     url = normalizeUrl(url);
 
-    const { finalFormat, paths } = createPaths(mode, format);
+    const { finalFormat, filename, paths } = await createMediaPaths({ url, site: "instagram", mode, format });
 
     broadcastProgress("Initialisation Instagram...", 0);
 
@@ -225,6 +208,7 @@ router.post("/download/instagram", async (req, res) => {
         return res.json({
             file: paths.outputPath,
             downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
+            filename,
             site: "instagram",
             mode,
             format: finalFormat
@@ -285,7 +269,7 @@ router.post("/download/x", async (req, res) => {
 
     url = normalizeUrl(url);
 
-    const { finalFormat, paths } = createPaths(mode, format);
+    const { finalFormat, filename, paths } = await createMediaPaths({ url, site: "x", mode, format });
 
     broadcastProgress("Initialisation X...", 0);
 
@@ -301,6 +285,7 @@ router.post("/download/x", async (req, res) => {
         return res.json({
             file: paths.outputPath,
             downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
+            filename,
             site: "x",
             mode,
             format: finalFormat
@@ -336,7 +321,7 @@ router.post("/download/redgifs", async (req, res) => {
 
     url = normalizeUrl(url);
 
-    const { finalFormat, paths } = createPaths(mode, format);
+    const { finalFormat, filename, paths } = await createMediaPaths({ url, site: "redgifs", mode, format });
 
     broadcastProgress("Initialisation RedGifs...", 0);
 
@@ -352,6 +337,7 @@ router.post("/download/redgifs", async (req, res) => {
         return res.json({
             file: paths.outputPath,
             downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
+            filename,
             site: "redgifs",
             mode,
             format: finalFormat
@@ -412,7 +398,12 @@ router.post("/download/batch", async (req, res) => {
             }
 
             const format = finalMode === "audio" ? "mp3" : "mp4";
-            const { paths: newPaths } = createPaths(finalMode, format);
+            const { filename, paths: newPaths } = await createMediaPaths({
+                url: finalUrl,
+                site,
+                mode: finalMode,
+                format
+            });
             paths = newPaths;
 
             // Télécharger selon le site
@@ -456,7 +447,8 @@ router.post("/download/batch", async (req, res) => {
                 url: url,
                 site: site,
                 file: paths.outputPath,
-                downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath)
+                downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
+                filename
             });
 
             broadcastProgress({

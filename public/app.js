@@ -42,9 +42,53 @@ const pasteBtn = document.getElementById("pasteBtn");
 const videosListSection = document.getElementById("videosListSection");
 const videosTableBody = document.getElementById("videosTableBody");
 const audioOnlyCheckbox = document.getElementById("audioOnlyCheckbox");
+const cookieAlert = document.getElementById("cookieAlert");
+const cookieAlertTitle = document.getElementById("cookieAlertTitle");
+const cookieAlertMessage = document.getElementById("cookieAlertMessage");
 
 // État du batch en cours
 let currentBatchState = null;
+
+// ==============================
+// Alerte d'expiration des cookies
+// ==============================
+
+function displayCookieAlert(cookies) {
+    const actionableCookies = cookies.filter(cookie =>
+        ["expired", "expiring_soon", "missing", "unreadable", "unknown"].includes(cookie.status)
+    );
+
+    if (actionableCookies.length === 0) {
+        cookieAlert.hidden = true;
+        return;
+    }
+
+    const hasCriticalIssue = actionableCookies.some(cookie =>
+        ["expired", "missing", "unreadable"].includes(cookie.status)
+    );
+    const labels = { youtube: "YouTube", instagram: "Instagram" };
+
+    cookieAlert.className = `cookie-alert ${hasCriticalIssue ? "cookie-alert-critical" : "cookie-alert-warning"}`;
+    cookieAlertTitle.textContent = hasCriticalIssue ? "Cookies à mettre à jour" : "Expiration prochaine des cookies";
+    cookieAlertMessage.textContent = actionableCookies
+        .map(cookie => `${labels[cookie.site]} : ${cookie.message}`)
+        .join(" ");
+    cookieAlert.hidden = false;
+}
+
+async function loadCookieStatus() {
+    try {
+        const response = await fetch("/api/cookies/status", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        displayCookieAlert(data.cookies || []);
+    } catch (error) {
+        console.warn("Impossible de vérifier le statut des cookies:", error);
+    }
+}
+
+loadCookieStatus();
 
 // ==============================
 // SSE pour la progression

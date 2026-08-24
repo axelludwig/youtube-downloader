@@ -9,6 +9,7 @@ import "./src/core/ffmpeg-init.js";
 import progressRoute from "./src/routes/progress.route.js";
 import downloadRoute from "./src/routes/download.route.js";
 import fileRoute from "./src/routes/file.route.js";
+import cookieStatusRoute from "./src/routes/cookie-status.route.js";
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.get("/", (req, res) => {
 app.use(progressRoute);
 app.use(downloadRoute);
 app.use(fileRoute);
+app.use(cookieStatusRoute);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

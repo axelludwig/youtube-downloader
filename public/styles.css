@@ -125,6 +125,43 @@ h1 {
     gap: 28px;
 }
 
+/* Alerte liée aux cookies d'authentification */
+.cookie-alert {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px 20px;
+    border: 1px solid;
+    border-radius: 12px;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.cookie-alert[hidden] {
+    display: none;
+}
+
+.cookie-alert-critical {
+    color: #fecaca;
+    background: rgba(127, 29, 29, 0.35);
+    border-color: #ef4444;
+}
+
+.cookie-alert-warning {
+    color: #fef3c7;
+    background: rgba(120, 53, 15, 0.35);
+    border-color: #f59e0b;
+}
+
+html[data-theme="light"] .cookie-alert-critical {
+    color: #991b1b;
+    background: #fef2f2;
+}
+
+html[data-theme="light"] .cookie-alert-warning {
+    color: #92400e;
+    background: #fffbeb;
+}
+
 /* Card - Minimalist */
 .card {
     background: var(--bg-light);

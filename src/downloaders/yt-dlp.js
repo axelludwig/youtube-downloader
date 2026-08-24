@@ -50,6 +50,14 @@ export async function downloadVideoYtDlp({ url, paths }) {
                 broadcastProgress("Fusion vidéo/audio", pct);
             })
             .on("end", () => {
+                // Nettoyage des fichiers temporaires
+                try {
+                    if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
+                    if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
+                    console.log("Fichiers temporaires supprimés");
+                } catch (err) {
+                    console.warn("Impossible de supprimer les fichiers temporaires:", err.message);
+                }
                 broadcastProgress("Terminé", 100);
                 resolve();
             })

@@ -2,7 +2,7 @@
 import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
 
-import { YTDLP_PATH, FFMPEG_PATH } from "../config/paths.js";
+import { YTDLP_PATH, FFMPEG_PATH, YOUTUBE_COOKIES_PATH } from "../config/paths.js";
 import { execProgress } from "../core/exec-progress.js";
 import { broadcastProgress } from "../core/progress-sse.js";
 
@@ -12,14 +12,22 @@ export async function downloadYoutubeVideo({ url, paths }) {
 
     // 1) Vidéo
     broadcastProgress("Téléchargement vidéo YouTube", 0);
+    
+    const videoArgs = [
+        "-f", "bestvideo[ext=mp4]/bestvideo[ext=webm]/bestvideo",
+        "--extractor-args", "youtube:player_client=web,default",
+        "--no-update"
+    ];
+    
+    if (YOUTUBE_COOKIES_PATH) {
+        videoArgs.push("--cookies", YOUTUBE_COOKIES_PATH);
+    }
+    
+    videoArgs.push("-o", videoPath, url);
+    
     await execProgress(
         YTDLP_PATH,
-        [
-            "-f", "bestvideo[ext=mp4]/bestvideo[ext=webm]/bestvideo",
-            "--extractor-args", "youtube:player_client=web,default",
-            "--no-update",
-            "-o", videoPath, url
-        ],
+        videoArgs,
         "Téléchargement vidéo YouTube"
     );
 
@@ -29,14 +37,22 @@ export async function downloadYoutubeVideo({ url, paths }) {
 
     // 2) Audio
     broadcastProgress("Téléchargement audio YouTube", 0);
+    
+    const audioArgs = [
+        "-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio",
+        "--extractor-args", "youtube:player_client=web,default",
+        "--no-update"
+    ];
+    
+    if (YOUTUBE_COOKIES_PATH) {
+        audioArgs.push("--cookies", YOUTUBE_COOKIES_PATH);
+    }
+    
+    audioArgs.push("-o", audioPath, url);
+    
     await execProgress(
         YTDLP_PATH,
-        [
-            "-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio",
-            "--extractor-args", "youtube:player_client=web,default",
-            "--no-update",
-            "-o", audioPath, url
-        ],
+        audioArgs,
         "Téléchargement audio YouTube"
     );
 
@@ -61,6 +77,14 @@ export async function downloadYoutubeVideo({ url, paths }) {
                 broadcastProgress("Fusion vidéo/audio YouTube", pct);
             })
             .on("end", () => {
+                // Nettoyage des fichiers temporaires
+                try {
+                    if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
+                    if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
+                    console.log("Fichiers temporaires supprimés");
+                } catch (err) {
+                    console.warn("Impossible de supprimer les fichiers temporaires:", err.message);
+                }
                 broadcastProgress("Terminé YouTube", 100);
                 resolve();
             })
@@ -84,17 +108,23 @@ export async function downloadYoutubeAudio({ url, format, paths }) {
 
     broadcastProgress("Téléchargement audio YouTube", 0);
 
+    const args = [
+        "-x",
+        "--audio-format", audioFormat,
+        "--ffmpeg-location", FFMPEG_PATH,
+        "--extractor-args", "youtube:player_client=web,default",
+        "--no-update"
+    ];
+    
+    if (YOUTUBE_COOKIES_PATH) {
+        args.push("--cookies", YOUTUBE_COOKIES_PATH);
+    }
+    
+    args.push("-o", outputPath, url);
+
     await execProgress(
         YTDLP_PATH,
-        [
-            "-x",
-            "--audio-format", audioFormat,
-            "--ffmpeg-location", FFMPEG_PATH,
-            "--extractor-args", "youtube:player_client=web,default",
-            "--no-update",
-            "-o", outputPath,
-            url
-        ],
+        args,
         "Téléchargement audio YouTube"
     );
 

@@ -3,7 +3,7 @@ import path from "path";
 import { execFile } from "child_process";
 
 import { DOWNLOAD_DIR, MERGED_DIR } from "../config/dirs.js";
-import { YTDLP_PATH, INSTAGRAM_COOKIES_PATH } from "../config/paths.js";
+import { YTDLP_PATH, INSTAGRAM_COOKIES_PATH, YOUTUBE_COOKIES_PATH } from "../config/paths.js";
 
 export async function createMediaPaths({ url, site, mode, format }) {
     const defaultFormat = mode === "audio" ? "mp3" : "mp4";
@@ -46,6 +46,9 @@ async function getVideoMetadata({ url, site }) {
 
     if (site === "youtube") {
         args.push("--extractor-args", "youtube:player_client=web,default", "--no-update");
+        if (YOUTUBE_COOKIES_PATH) {
+            args.push("--cookies", YOUTUBE_COOKIES_PATH);
+        }
     }
 
     if (site === "instagram" && INSTAGRAM_COOKIES_PATH) {

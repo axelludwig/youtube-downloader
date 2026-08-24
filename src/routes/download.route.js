@@ -66,6 +66,28 @@ function detectSite(rawUrl) {
     }
 }
 
+// --------- Traitement d'erreurs yt-dlp ---------
+
+function handleYtDlpError(err, site) {
+    const httpStatusMap = {
+        "AGE_RESTRICTED": { status: 403, title: "Contenu réservé" },
+        "CONTENT_RESTRICTED": { status: 403, title: "Contenu restreint" },
+        "SESSION_INVALID": { status: 401, title: "Session invalide" },
+        "VIDEO_UNAVAILABLE": { status: 404, title: "Vidéo indisponible" },
+        "YTDLP_ERROR": { status: 500, title: "Erreur yt-dlp" }
+    };
+
+    const errorInfo = httpStatusMap[err.code] || { status: 500, title: "Erreur inconnue" };
+    const userMessage = err.userMessage || "Une erreur est survenue lors du téléchargement.";
+
+    return {
+        status: errorInfo.status,
+        error: errorInfo.title,
+        details: userMessage,
+        code: err.code || "UNKNOWN"
+    };
+}
+
 // --------- YOUTUBE ---------
 
 router.post("/download/youtube", async (req, res) => {
@@ -112,9 +134,12 @@ router.post("/download/youtube", async (req, res) => {
     } catch (err) {
         console.error("Erreur /download/youtube :", err);
         broadcastProgress("✗ Erreur YouTube", 0);
-        return res.status(500).json({
-            error: "Erreur lors du traitement YouTube",
-            details: String(err)
+        
+        const errorResponse = handleYtDlpError(err, "youtube");
+        return res.status(errorResponse.status).json({
+            error: errorResponse.error,
+            details: errorResponse.details,
+            code: errorResponse.code
         });
     }
 });
@@ -164,9 +189,12 @@ router.post("/download/tiktok", async (req, res) => {
     } catch (err) {
         console.error("Erreur /download/tiktok :", err);
         broadcastProgress("✗ Erreur TikTok", 0);
-        return res.status(500).json({
-            error: "Erreur lors du traitement TikTok",
-            details: String(err)
+        
+        const errorResponse = handleYtDlpError(err, "tiktok");
+        return res.status(errorResponse.status).json({
+            error: errorResponse.error,
+            details: errorResponse.details,
+            code: errorResponse.code
         });
     }
 });
@@ -220,13 +248,14 @@ router.post("/download/instagram", async (req, res) => {
 
         broadcastProgress("✗ Erreur Instagram", 0);
 
-        // Cas 1 : contenu restreint par Instagram (ton exemple)
+        // Cas 1 : contenu restreint par Instagram
         if (msg.includes("This content may be inappropriate")) {
             return res.status(403).json({
                 error: "Contenu restreint sur Instagram : cookie plus valide",
                 details:
                     "Instagram indique que ce contenu peut être inapproprié ou n'est pas disponible pour tous les publics. " +
-                    "Même connecté avec tes cookies, il n'est pas autorisé d'y accéder via cet outil."
+                    "Même connecté avec tes cookies, il n'est pas autorisé d'y accéder via cet outil.",
+                code: "CONTENT_RESTRICTED"
             });
         }
 
@@ -236,14 +265,17 @@ router.post("/download/instagram", async (req, res) => {
                 error: "Session Instagram invalide",
                 details:
                     "Instagram n'accepte plus les cookies fournis (csrf/session). " +
-                    "Réexporte tes cookies Instagram et remplace le fichier instagram.txt."
+                    "Réexporte tes cookies Instagram et remplace le fichier instagram.txt.",
+                code: "SESSION_INVALID"
             });
         }
 
-        // Fallback générique
-        return res.status(500).json({
-            error: "Erreur lors du traitement Instagram",
-            details: msg
+        // Utiliser la fonction helper pour autres erreurs yt-dlp
+        const errorResponse = handleYtDlpError(err, "instagram");
+        return res.status(errorResponse.status).json({
+            error: errorResponse.error || "Erreur lors du traitement Instagram",
+            details: errorResponse.details || msg,
+            code: errorResponse.code
         });
     }
 });
@@ -293,9 +325,12 @@ router.post("/download/x", async (req, res) => {
     } catch (err) {
         console.error("Erreur /download/x :", err);
         broadcastProgress("✗ Erreur X", 0);
-        return res.status(500).json({
-            error: "Erreur lors du traitement X",
-            details: String(err)
+        
+        const errorResponse = handleYtDlpError(err, "x");
+        return res.status(errorResponse.status).json({
+            error: errorResponse.error,
+            details: errorResponse.details,
+            code: errorResponse.code
         });
     }
 });
@@ -345,9 +380,12 @@ router.post("/download/redgifs", async (req, res) => {
     } catch (err) {
         console.error("Erreur /download/redgifs :", err);
         broadcastProgress("✗ Erreur RedGifs", 0);
-        return res.status(500).json({
-            error: "Erreur lors du traitement RedGifs",
-            details: String(err)
+        
+        const errorResponse = handleYtDlpError(err, "redgifs");
+        return res.status(errorResponse.status).json({
+            error: errorResponse.error,
+            details: errorResponse.details,
+            code: errorResponse.code
         });
     }
 });

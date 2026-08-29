@@ -23,12 +23,14 @@ export const FFMPEG_PATH  = path.join(FFMPEG_DIR, "ffmpeg" + ext);
 export const FFPROBE_PATH = path.join(FFMPEG_DIR, "ffprobe" + ext);
 export const YTDLP_PATH   = path.join(YTDLP_DIR,  "yt-dlp" + ext);
 
-// Chemins des cookies (via .env)
+// Chemins des cookies (via .env, avec repli sur le dossier cookies/ du projet)
+export const COOKIES_DIR = path.join(PROJECT_ROOT, "cookies");
+
 export const INSTAGRAM_COOKIES_PATH =
-    process.env.INSTAGRAM_COOKIES_PATH || null;
+    process.env.INSTAGRAM_COOKIES_PATH || path.join(COOKIES_DIR, "instagram.txt");
 
 export const YOUTUBE_COOKIES_PATH =
-    process.env.YOUTUBE_COOKIES_PATH || null;
+    process.env.YOUTUBE_COOKIES_PATH || path.join(COOKIES_DIR, "youtube.txt");
 
 // Debug facultatif
 console.log("INSTAGRAM_COOKIES_PATH =", INSTAGRAM_COOKIES_PATH);

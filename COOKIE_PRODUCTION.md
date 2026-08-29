@@ -80,14 +80,43 @@ Après remplacement du fichier, redémarrer le service si la configuration a cha
 
 ## Upload depuis le frontend
 
-Une page d'administration peut permettre de téléverser un fichier `cookies.txt`. Cette fonctionnalité doit être strictement protégée :
+Une page d'administration (`/admin.html`) permet de téléverser un fichier `cookies.txt` pour YouTube et Instagram, protégée par mot de passe.
 
-- endpoint réservé à un administrateur authentifié ;
-- upload `multipart/form-data` avec limite de taille et validation du format Netscape ;
-- stockage hors du répertoire public, avec permissions `600` ;
-- remplacement atomique de l'ancien fichier ;
-- aucune lecture, prévisualisation ou exposition du contenu au navigateur ;
-- audit de l'action sans enregistrer le cookie lui-même ;
-- conservation du fichier en dehors de Git et des sauvegardes non chiffrées.
+### Activer la page d'administration
 
-Pour une instance publique, privilégier la configuration serveur ou un gestionnaire de secrets. L'upload frontend est adapté à une interface d'administration privée.
+Tant que les deux variables suivantes ne sont pas définies, `/admin.html` répond "administration désactivée" et les endpoints `/api/admin/*` renvoient `503` :
+
+```bash
+# 1. Générer le hash du mot de passe
+node scripts/hash-password.js "mon-mot-de-passe"
+
+# 2. Générer un secret aléatoire pour signer les cookies de session
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Dans `.env` :
+
+```env
+ADMIN_PASSWORD_HASH=<sortie de l'étape 1>
+SESSION_SECRET=<sortie de l'étape 2>
+```
+
+Redémarrer l'application après modification.
+
+### Ce que fait l'implémentation
+
+- endpoint réservé à un administrateur authentifié (`POST /api/admin/login`, session en cookie `httpOnly` signé, valable 12h) ;
+- limitation naïve des tentatives de connexion (5 essais / 15 min par IP) ;
+- upload `multipart/form-data` (`POST /api/admin/cookies/youtube` ou `/instagram`), limité à 512 Ko ;
+- validation du format Netscape et présence d'au moins un cookie de session reconnu pour le site visé ;
+- écriture atomique (fichier temporaire puis renommage) avec permissions restreintes (`600`, sans effet sur Windows) ;
+- aucune lecture, prévisualisation ou renvoi du contenu au navigateur — seul un statut (valide/expiré/manquant) est exposé via `/api/cookies/status` ;
+- audit en log serveur (date + site), jamais le contenu du cookie.
+
+### Limites à connaître
+
+- les sessions admin sont en mémoire : elles sont perdues si le process redémarre (PM2 restart, crash) — il faut se reconnecter ;
+- il n'y a qu'un seul mot de passe partagé, pas de comptes distincts ;
+- si l'application tourne derrière un reverse proxy, penser à `app.set("trust proxy", 1)` pour que la limitation par IP et `secure` sur le cookie fonctionnent correctement.
+
+Pour une instance exposée publiquement, restreindre en plus l'accès à `/admin.html` au niveau du reverse proxy (IP allowlist, VPN) plutôt que de compter uniquement sur le mot de passe applicatif.

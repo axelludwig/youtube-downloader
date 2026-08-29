@@ -2,38 +2,10 @@ import fs from "fs";
 import { Router } from "express";
 
 import { INSTAGRAM_COOKIES_PATH, YOUTUBE_COOKIES_PATH } from "../config/paths.js";
+import { parseCookieExpirationDates } from "../core/cookie-file.js";
 
 const router = Router();
 const EXPIRING_SOON_MS = 7 * 24 * 60 * 60 * 1000;
-
-const AUTH_COOKIE_NAMES = {
-    youtube: new Set(["SID", "HSID", "SSID", "APISID", "SAPISID", "LOGIN_INFO"]),
-    instagram: new Set(["sessionid", "csrftoken", "ds_user_id", "mid"])
-};
-
-function isAuthenticationCookie(site, name) {
-    if (AUTH_COOKIE_NAMES[site].has(name)) return true;
-    return site === "youtube" && name.startsWith("__Secure-") && name.includes("PSID");
-}
-
-function parseCookieExpirationDates(content, site) {
-    const dates = [];
-
-    for (const line of content.split(/\r?\n/)) {
-        const normalizedLine = line.startsWith("#HttpOnly_") ? line.slice(1) : line;
-        if (!normalizedLine || normalizedLine.startsWith("#")) continue;
-
-        const columns = normalizedLine.split("\t");
-        if (columns.length < 7 || !isAuthenticationCookie(site, columns[5])) continue;
-
-        const expiresAtSeconds = Number(columns[4]);
-        if (Number.isFinite(expiresAtSeconds) && expiresAtSeconds > 0) {
-            dates.push(expiresAtSeconds * 1000);
-        }
-    }
-
-    return dates;
-}
 
 function getCookieStatus(site, cookiePath) {
     if (!cookiePath) {

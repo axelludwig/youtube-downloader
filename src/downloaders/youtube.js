@@ -19,7 +19,7 @@ export async function downloadYoutubeVideo({ url, paths }) {
         "--no-update"
     ];
     
-    if (YOUTUBE_COOKIES_PATH) {
+    if (YOUTUBE_COOKIES_PATH && fs.existsSync(YOUTUBE_COOKIES_PATH)) {
         videoArgs.push("--cookies", YOUTUBE_COOKIES_PATH);
     }
     
@@ -44,7 +44,7 @@ export async function downloadYoutubeVideo({ url, paths }) {
         "--no-update"
     ];
     
-    if (YOUTUBE_COOKIES_PATH) {
+    if (YOUTUBE_COOKIES_PATH && fs.existsSync(YOUTUBE_COOKIES_PATH)) {
         audioArgs.push("--cookies", YOUTUBE_COOKIES_PATH);
     }
     

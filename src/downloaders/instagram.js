@@ -6,7 +6,7 @@ import { broadcastProgress } from "../core/progress-sse.js";
 
 function buildInstagramArgsBase() {
     const args = [];
-    if (INSTAGRAM_COOKIES_PATH) {
+    if (INSTAGRAM_COOKIES_PATH && fs.existsSync(INSTAGRAM_COOKIES_PATH)) {
         args.push("--cookies", INSTAGRAM_COOKIES_PATH);
     }
     return args;

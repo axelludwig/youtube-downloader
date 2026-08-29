@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="robots" content="noindex, nofollow" />
+        <title>Administration — Cookies</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+
+    <body>
+        <button id="themeToggle" class="theme-toggle" title="Basculer le thème">🌙</button>
+        <main>
+            <header class="app-header">
+                <div class="header-content">
+                    <h1>Administration</h1>
+                    <p class="header-subtitle">Cookies de session YouTube et Instagram</p>
+                </div>
+            </header>
+
+            <div class="container">
+                <section id="loginCard" class="card" hidden>
+                    <h2 class="section-title">Connexion</h2>
+                    <form id="loginForm">
+                        <input
+                            type="password"
+                            id="passwordInput"
+                            placeholder="Mot de passe administrateur"
+                            autocomplete="current-password"
+                            required
+                        />
+                        <button type="submit" class="btn-primary">Se connecter</button>
+                        <p id="loginError" class="admin-message admin-message-error" hidden></p>
+                    </form>
+                </section>
+
+                <section id="disabledCard" class="card" hidden>
+                    <h2 class="section-title">Administration désactivée</h2>
+                    <p class="admin-note">
+                        Le serveur n'a pas de mot de passe administrateur configuré (ADMIN_PASSWORD_HASH /
+                        SESSION_SECRET manquants dans .env).
+                    </p>
+                </section>
+
+                <section id="adminPanel" class="card" hidden>
+                    <div class="admin-panel-header">
+                        <h2 class="section-title">Cookies YouTube</h2>
+                        <button id="logoutBtn" type="button" class="btn-secondary">Se déconnecter</button>
+                    </div>
+
+                    <div class="cookie-upload-block">
+                        <p id="youtubeStatus" class="cookie-status-line">Statut : —</p>
+                        <form class="cookie-upload-form" data-site="youtube">
+                            <input type="file" name="cookieFile" accept=".txt" required />
+                            <button type="submit" class="btn-primary">Envoyer le fichier</button>
+                        </form>
+                        <p class="upload-divider">ou</p>
+                        <form class="cookie-paste-form" data-site="youtube">
+                            <textarea
+                                name="cookieText"
+                                rows="4"
+                                placeholder="Collez ici le contenu du cookies.txt (format Netscape)"
+                            ></textarea>
+                            <button type="submit" class="btn-primary">Envoyer le texte</button>
+                        </form>
+                    </div>
+
+                    <h2 class="section-title cookie-block-title">Cookies Instagram</h2>
+                    <div class="cookie-upload-block">
+                        <p id="instagramStatus" class="cookie-status-line">Statut : —</p>
+                        <form class="cookie-upload-form" data-site="instagram">
+                            <input type="file" name="cookieFile" accept=".txt" required />
+                            <button type="submit" class="btn-primary">Envoyer le fichier</button>
+                        </form>
+                        <p class="upload-divider">ou</p>
+                        <form class="cookie-paste-form" data-site="instagram">
+                            <textarea
+                                name="cookieText"
+                                rows="4"
+                                placeholder="Collez ici le contenu du cookies.txt (format Netscape)"
+                            ></textarea>
+                            <button type="submit" class="btn-primary">Envoyer le texte</button>
+                        </form>
+                    </div>
+
+                    <p id="uploadMessage" class="admin-message" hidden></p>
+                </section>
+            </div>
+        </main>
+
+        <script src="admin.js"></script>
+    </body>
+</html>

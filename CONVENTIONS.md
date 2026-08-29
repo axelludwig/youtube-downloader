@@ -13,24 +13,38 @@ youtube-downloader/
 ├── public/
 │   ├── index.html                # Interface web
 │   ├── app.js                    # Logique frontend
+│   ├── admin.html                # Page d'administration (upload cookies)
+│   ├── admin.js                  # Logique frontend admin
 │   └── styles.css                # Styles (dark/light theme)
+├── scripts/
+│   └── hash-password.js          # CLI pour générer ADMIN_PASSWORD_HASH
 ├── src/
 │   ├── config/
 │   │   ├── dirs.js               # Dossiers de sortie (downloads/, merged/)
-│   │   └── paths.js              # Chemins des binaires (yt-dlp, ffmpeg)
+│   │   ├── paths.js              # Chemins des binaires (yt-dlp, ffmpeg) et cookies
+│   │   └── auth.js               # Config admin (ADMIN_PASSWORD_HASH, SESSION_SECRET)
 │   ├── core/
 │   │   ├── exec-progress.js      # Wrapper execFile avec parsing progression yt-dlp
 │   │   ├── ffmpeg-init.js        # Configure fluent-ffmpeg avec les binaires locaux
-│   │   └── progress-sse.js       # Broadcast SSE vers le frontend
+│   │   ├── progress-sse.js       # Broadcast SSE vers le frontend
+│   │   ├── cookie-file.js        # Parsing/validation des fichiers cookies.txt (Netscape)
+│   │   ├── password.js           # Hash/vérification mot de passe admin (scrypt)
+│   │   ├── admin-sessions.js     # Sessions admin en mémoire
+│   │   └── login-rate-limit.js   # Limitation des tentatives de login admin
 │   ├── downloaders/
 │   │   ├── youtube.js            # Téléchargement YouTube (vidéo + audio)
 │   │   ├── tiktok.js             # Téléchargement TikTok (vidéo + audio)
 │   │   ├── instagram.js          # Téléchargement Instagram (vidéo + audio + cookies)
 │   │   └── yt-dlp.js             # Downloader générique via yt-dlp
+│   ├── middleware/
+│   │   └── require-admin.js      # Middleware d'authentification admin
 │   ├── routes/
 │   │   ├── download.route.js     # Routes POST /download/* et /download/batch
 │   │   ├── file.route.js         # Route GET /file?path=... (livraison fichier)
-│   │   └── progress.route.js     # Route GET /progress (SSE)
+│   │   ├── progress.route.js     # Route GET /progress (SSE)
+│   │   ├── cookie-status.route.js   # Route GET /api/cookies/status
+│   │   ├── admin-auth.route.js      # Routes POST /api/admin/login|logout, GET /api/admin/session
+│   │   └── cookie-upload.route.js   # Route POST /api/admin/cookies/:site (protégée)
 │   └── services/
 │       └── download.service.js   # Service générique (détection site + dispatch)
 └── ecosystem.config.cjs          # Config PM2

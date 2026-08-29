@@ -35,6 +35,9 @@ const passwordInput = document.getElementById("passwordInput");
 const loginError = document.getElementById("loginError");
 const logoutBtn = document.getElementById("logoutBtn");
 const uploadMessage = document.getElementById("uploadMessage");
+const ytdlpVersion = document.getElementById("ytdlpVersion");
+const ytdlpUpdateBtn = document.getElementById("ytdlpUpdateBtn");
+const ytdlpUpdateOutput = document.getElementById("ytdlpUpdateOutput");
 
 const STATUS_LABELS = {
     valid: "valide",
@@ -67,6 +70,7 @@ function showAdminPanel() {
     disabledCard.hidden = true;
     adminPanel.hidden = false;
     loadCookieStatus();
+    loadYtdlpVersion();
 }
 
 // ==============================
@@ -211,6 +215,57 @@ document.querySelectorAll(".cookie-upload-form").forEach((form) => {
 
         submitBtn.disabled = false;
     });
+});
+
+// ==============================
+// Mise à jour de yt-dlp
+// ==============================
+
+async function loadYtdlpVersion() {
+    try {
+        const res = await fetch("/api/admin/ytdlp/version", { cache: "no-store" });
+        if (res.status === 401) return;
+
+        const data = await res.json();
+        ytdlpVersion.textContent = `Version : ${data.version || "inconnue"}`;
+    } catch (error) {
+        ytdlpVersion.textContent = "Version : impossible de la lire";
+    }
+}
+
+ytdlpUpdateBtn.addEventListener("click", async () => {
+    ytdlpUpdateBtn.disabled = true;
+    ytdlpUpdateBtn.textContent = "Mise à jour en cours...";
+    ytdlpUpdateOutput.hidden = true;
+
+    try {
+        const res = await fetch("/api/admin/ytdlp/update", { method: "POST" });
+
+        if (res.status === 401) {
+            showLoginCard();
+            return;
+        }
+
+        const data = await res.json().catch(() => ({}));
+        ytdlpUpdateOutput.hidden = false;
+
+        if (!res.ok) {
+            if (data.before) ytdlpVersion.textContent = `Version : ${data.before}`;
+            ytdlpUpdateOutput.textContent = [data.error, data.output].filter(Boolean).join("\n\n");
+            return;
+        }
+
+        ytdlpVersion.textContent = `Version : ${data.after}`;
+        ytdlpUpdateOutput.textContent = data.updated
+            ? `Mise à jour effectuée : ${data.before} → ${data.after}`
+            : `Déjà à jour (version ${data.after}).`;
+    } catch (error) {
+        ytdlpUpdateOutput.hidden = false;
+        ytdlpUpdateOutput.textContent = "Erreur réseau lors de la mise à jour.";
+    } finally {
+        ytdlpUpdateBtn.disabled = false;
+        ytdlpUpdateBtn.textContent = "Mettre à jour yt-dlp";
+    }
 });
 
 document.querySelectorAll(".cookie-paste-form").forEach((form) => {

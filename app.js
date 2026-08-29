@@ -13,6 +13,7 @@ import fileRoute from "./src/routes/file.route.js";
 import cookieStatusRoute from "./src/routes/cookie-status.route.js";
 import adminAuthRoute from "./src/routes/admin-auth.route.js";
 import cookieUploadRoute from "./src/routes/cookie-upload.route.js";
+import ytdlpUpdateRoute from "./src/routes/ytdlp-update.route.js";
 import { SESSION_SECRET, isAdminConfigured } from "./src/config/auth.js";
 
 dotenv.config();
@@ -34,6 +35,7 @@ app.use(fileRoute);
 app.use(cookieStatusRoute);
 app.use(adminAuthRoute);
 app.use(cookieUploadRoute);
+app.use(ytdlpUpdateRoute);
 
 if (!isAdminConfigured) {
     console.warn(

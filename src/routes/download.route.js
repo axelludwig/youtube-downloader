@@ -7,7 +7,8 @@ import { downloadInstagramVideo, downloadInstagramAudio } from "../downloaders/i
 import { downloadXVideo, downloadXAudio } from "../downloaders/x.js";
 import { downloadRedgifsVideo, downloadRedgifsAudio } from "../downloaders/redgifs.js";
 import { broadcastProgress, setBatchContext } from "../core/progress-sse.js";
-import { createMediaPaths } from "../core/media-names.js";
+import { createMediaPaths, isAllowedFormat } from "../core/media-names.js";
+import { buildFileUrl } from "../core/file-url.js";
 
 
 const router = Router();
@@ -93,7 +94,7 @@ function handleYtDlpError(err, site) {
 router.post("/download/youtube", async (req, res) => {
     let { url, mode, format } = req.body;
 
-    if (!url || !mode) {
+    if (typeof url !== "string" || !url.trim() || !mode) {
         return res.status(400).json({
             error: "Paramètres manquants",
             details: "Les champs 'url' et 'mode' sont obligatoires"
@@ -104,6 +105,13 @@ router.post("/download/youtube", async (req, res) => {
         return res.status(400).json({
             error: "Mode invalide",
             details: "Le champ 'mode' doit être 'audio' ou 'video'"
+        });
+    }
+
+    if (!isAllowedFormat(mode, format)) {
+        return res.status(400).json({
+            error: "Format invalide",
+            details: "Ce format n'est pas pris en charge pour ce mode"
         });
     }
 
@@ -124,8 +132,7 @@ router.post("/download/youtube", async (req, res) => {
         broadcastProgress("✓ Téléchargement YouTube terminé", 100);
 
         return res.json({
-            file: paths.outputPath,
-            downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
+            downloadUrl: buildFileUrl(paths.outputPath),
             filename,
             site: "youtube",
             mode,
@@ -149,7 +156,7 @@ router.post("/download/youtube", async (req, res) => {
 router.post("/download/tiktok", async (req, res) => {
     let { url, mode, format } = req.body;
 
-    if (!url || !mode) {
+    if (typeof url !== "string" || !url.trim() || !mode) {
         return res.status(400).json({
             error: "Paramètres manquants",
             details: "Les champs 'url' et 'mode' sont obligatoires"
@@ -160,6 +167,13 @@ router.post("/download/tiktok", async (req, res) => {
         return res.status(400).json({
             error: "Mode invalide",
             details: "Le champ 'mode' doit être 'audio' ou 'video'"
+        });
+    }
+
+    if (!isAllowedFormat(mode, format)) {
+        return res.status(400).json({
+            error: "Format invalide",
+            details: "Ce format n'est pas pris en charge pour ce mode"
         });
     }
 
@@ -179,8 +193,7 @@ router.post("/download/tiktok", async (req, res) => {
         broadcastProgress("✓ Téléchargement TikTok terminé", 100);
 
         return res.json({
-            file: paths.outputPath,
-            downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
+            downloadUrl: buildFileUrl(paths.outputPath),
             filename,
             site: "tiktok",
             mode,
@@ -204,7 +217,7 @@ router.post("/download/tiktok", async (req, res) => {
 router.post("/download/instagram", async (req, res) => {
     let { url, mode, format } = req.body;
 
-    if (!url || !mode) {
+    if (typeof url !== "string" || !url.trim() || !mode) {
         return res.status(400).json({
             error: "Paramètres manquants",
             details: "Les champs 'url' et 'mode' sont obligatoires"
@@ -215,6 +228,13 @@ router.post("/download/instagram", async (req, res) => {
         return res.status(400).json({
             error: "Mode invalide",
             details: "Le champ 'mode' doit être 'audio' ou 'video'"
+        });
+    }
+
+    if (!isAllowedFormat(mode, format)) {
+        return res.status(400).json({
+            error: "Format invalide",
+            details: "Ce format n'est pas pris en charge pour ce mode"
         });
     }
 
@@ -234,8 +254,7 @@ router.post("/download/instagram", async (req, res) => {
         broadcastProgress("✓ Téléchargement Instagram terminé", 100);
 
         return res.json({
-            file: paths.outputPath,
-            downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
+            downloadUrl: buildFileUrl(paths.outputPath),
             filename,
             site: "instagram",
             mode,
@@ -285,7 +304,7 @@ router.post("/download/instagram", async (req, res) => {
 router.post("/download/x", async (req, res) => {
     let { url, mode, format } = req.body;
 
-    if (!url || !mode) {
+    if (typeof url !== "string" || !url.trim() || !mode) {
         return res.status(400).json({
             error: "Paramètres manquants",
             details: "Les champs 'url' et 'mode' sont obligatoires"
@@ -296,6 +315,13 @@ router.post("/download/x", async (req, res) => {
         return res.status(400).json({
             error: "Mode invalide",
             details: "Le champ 'mode' doit être 'audio' ou 'video'"
+        });
+    }
+
+    if (!isAllowedFormat(mode, format)) {
+        return res.status(400).json({
+            error: "Format invalide",
+            details: "Ce format n'est pas pris en charge pour ce mode"
         });
     }
 
@@ -315,8 +341,7 @@ router.post("/download/x", async (req, res) => {
         broadcastProgress("✓ Téléchargement X terminé", 100);
 
         return res.json({
-            file: paths.outputPath,
-            downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
+            downloadUrl: buildFileUrl(paths.outputPath),
             filename,
             site: "x",
             mode,
@@ -340,7 +365,7 @@ router.post("/download/x", async (req, res) => {
 router.post("/download/redgifs", async (req, res) => {
     let { url, mode, format } = req.body;
 
-    if (!url || !mode) {
+    if (typeof url !== "string" || !url.trim() || !mode) {
         return res.status(400).json({
             error: "Paramètres manquants",
             details: "Les champs 'url' et 'mode' sont obligatoires"
@@ -351,6 +376,13 @@ router.post("/download/redgifs", async (req, res) => {
         return res.status(400).json({
             error: "Mode invalide",
             details: "Le champ 'mode' doit être 'audio' ou 'video'"
+        });
+    }
+
+    if (!isAllowedFormat(mode, format)) {
+        return res.status(400).json({
+            error: "Format invalide",
+            details: "Ce format n'est pas pris en charge pour ce mode"
         });
     }
 
@@ -370,8 +402,7 @@ router.post("/download/redgifs", async (req, res) => {
         broadcastProgress("✓ Téléchargement RedGifs terminé", 100);
 
         return res.json({
-            file: paths.outputPath,
-            downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
+            downloadUrl: buildFileUrl(paths.outputPath),
             filename,
             site: "redgifs",
             mode,
@@ -395,10 +426,10 @@ router.post("/download/redgifs", async (req, res) => {
 router.post("/download/batch", async (req, res) => {
     const { urls, mode } = req.body;
 
-    if (!urls || !Array.isArray(urls) || urls.length === 0) {
+    if (!Array.isArray(urls) || urls.length === 0 || !urls.every(u => typeof u === "string" && u.trim())) {
         return res.status(400).json({
             error: "Paramètres invalides",
-            details: "Envoyez un tableau non-vide 'urls'"
+            details: "Envoyez un tableau non-vide 'urls' (chaînes de caractères)"
         });
     }
 
@@ -484,8 +515,7 @@ router.post("/download/batch", async (req, res) => {
                 index: i,
                 url: url,
                 site: site,
-                file: paths.outputPath,
-                downloadUrl: "/file?path=" + encodeURIComponent(paths.outputPath),
+                downloadUrl: buildFileUrl(paths.outputPath),
                 filename
             });
 
@@ -498,7 +528,9 @@ router.post("/download/batch", async (req, res) => {
 
         } catch (err) {
             results.failed++;
-            const errorMsg = String(err);
+            // Message destiné à l'utilisateur uniquement : la sortie brute de yt-dlp
+            // (chemins serveur, etc.) reste dans les logs et n'est pas diffusée via SSE.
+            const errorMsg = err?.userMessage || "Erreur lors du téléchargement.";
             results.errors.push({
                 urlIndex: i,
                 url: url,

@@ -5,7 +5,25 @@ import { execFile } from "child_process";
 import { DOWNLOAD_DIR, MERGED_DIR } from "../config/dirs.js";
 import { YTDLP_PATH, INSTAGRAM_COOKIES_PATH, YOUTUBE_COOKIES_PATH } from "../config/paths.js";
 
+// Formats acceptés (ils finissent dans le nom du fichier de sortie et dans --audio-format)
+const ALLOWED_FORMATS = {
+    audio: ["mp3", "m4a", "aac", "flac", "opus", "vorbis", "alac", "wav"],
+    video: ["mp4", "mkv", "webm"]
+};
+
+export function isAllowedFormat(mode, format) {
+    if (format === undefined || format === null || format === "") return true;
+    return (
+        typeof format === "string" &&
+        Object.hasOwn(ALLOWED_FORMATS, mode) &&
+        ALLOWED_FORMATS[mode].includes(format)
+    );
+}
+
 export async function createMediaPaths({ url, site, mode, format }) {
+    if (!isAllowedFormat(mode, format)) {
+        throw new Error("Format non pris en charge");
+    }
     const defaultFormat = mode === "audio" ? "mp3" : "mp4";
     const finalFormat = format || defaultFormat;
     const baseName = await buildBaseName({ url, site });
@@ -82,7 +100,7 @@ function execFileAsync(cmd, args) {
 
 function sanitizeFileName(value) {
     return String(value)
-        .replace(/[<>:"/\\|?*\u0000-\u001F]/g, " ")
+        .replace(/[<>:"/\\|?*%\u0000-\u001F]/g, " ")
         .replace(/\s+/g, " ")
         .trim()
         .replace(/[. ]+$/g, "")

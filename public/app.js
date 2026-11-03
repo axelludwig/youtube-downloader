@@ -210,12 +210,19 @@ function displayVideosTable(urls) {
 
         const shortUrl = url.length > 50 ? url.substring(0, 50) + "..." : url;
 
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td title="${url}">${shortUrl}</td>
-            <td class="video-status status-pending">⏳ En attente</td>
-            <td class="video-progress">—</td>
-        `;
+        const cells = [
+            { text: String(index + 1) },
+            { text: shortUrl, title: url },
+            { text: "⏳ En attente", className: "video-status status-pending" },
+            { text: "—", className: "video-progress" }
+        ];
+        for (const { text, title, className } of cells) {
+            const td = document.createElement("td");
+            td.textContent = text;
+            if (title) td.title = title;
+            if (className) td.className = className;
+            row.appendChild(td);
+        }
         videosTableBody.appendChild(row);
     });
     videosListSection.style.display = "block";

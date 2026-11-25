@@ -27,6 +27,7 @@ youtube-downloader/
 │   │   ├── exec-progress.js      # Wrapper execFile avec parsing progression yt-dlp
 │   │   ├── ffmpeg-init.js        # Configure fluent-ffmpeg avec les binaires locaux
 │   │   ├── progress-sse.js       # Broadcast SSE vers le frontend
+│   │   ├── temp-cleanup.js       # Nettoyage périodique de temp/downloads et temp/merged
 │   │   ├── cookie-file.js        # Parsing/validation des fichiers cookies.txt (Netscape)
 │   │   ├── password.js           # Hash/vérification mot de passe admin (scrypt)
 │   │   ├── admin-sessions.js     # Sessions admin en mémoire

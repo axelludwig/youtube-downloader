@@ -15,6 +15,7 @@ import adminAuthRoute from "./src/routes/admin-auth.route.js";
 import cookieUploadRoute from "./src/routes/cookie-upload.route.js";
 import ytdlpUpdateRoute from "./src/routes/ytdlp-update.route.js";
 import { SESSION_SECRET, isAdminConfigured } from "./src/config/auth.js";
+import { startTempCleanup } from "./src/core/temp-cleanup.js";
 
 dotenv.config();
 
@@ -42,6 +43,8 @@ if (!isAdminConfigured) {
         "ADMIN_PASSWORD_HASH / SESSION_SECRET non définis : la page d'administration des cookies (/admin.html) est désactivée."
     );
 }
+
+startTempCleanup();
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

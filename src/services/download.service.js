@@ -1,5 +1,6 @@
 import { downloadVideoYtDlp, downloadAudioYtDlp } from "../downloaders/yt-dlp.js";
 import { createMediaPaths } from "../core/media-names.js";
+import { buildFileUrl } from "../core/file-url.js";
 
 export async function downloadMedia({ url, mode, format }) {
     // 1) normalisation protocole
@@ -89,8 +90,7 @@ async function downloadWithYtDlp({ url, mode, format, paths }) {
 
 function buildResult(outputPath, engine, mode, format, filename) {
     return {
-        filePath: outputPath,
-        downloadUrl: "/file?path=" + encodeURIComponent(outputPath),
+        downloadUrl: buildFileUrl(outputPath),
         filename,
         engine,
         mode,
